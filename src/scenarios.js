@@ -19,7 +19,7 @@ export const SCENARIOS = [
   {
     id: "flood",
     label: "Flood",
-    mode: "edit",
+    mode: "restyle",
     enhance: true,
     prompt:
       "Heavy urban flood news scene: brown turbid floodwater up to knee height across " +
@@ -29,7 +29,7 @@ export const SCENARIOS = [
   {
     id: "wildfire",
     label: "Wildfire",
-    mode: "edit",
+    mode: "restyle",
     enhance: true,
     prompt:
       "Wildfire evacuation scene: thick orange smoke haze, glowing embers drifting in " +
@@ -39,7 +39,7 @@ export const SCENARIOS = [
   {
     id: "storm",
     label: "Storm",
-    mode: "edit",
+    mode: "restyle",
     enhance: true,
     prompt:
       "Hurricane / severe storm scene: violent wind bending palm trees, sideways rain, " +
@@ -49,7 +49,7 @@ export const SCENARIOS = [
   {
     id: "studio",
     label: "Studio (reset)",
-    mode: "edit",
+    mode: "restyle",
     enhance: false,
     // Panic button: returns the presenter to a clean, neutral broadcast set.
     prompt:

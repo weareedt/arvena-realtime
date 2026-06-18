@@ -12,7 +12,7 @@ import * as mp4 from "./mp4.js";
 const state = {
   status: "idle",        // idle | connecting | live
   scenarioId: CONFIG.DEFAULT_SCENARIO || DEFAULT_SCENARIO_ID,
-  mode: "edit",          // edit (lucy-2.1) | restyle (lucy-restyle-2)
+  mode: "restyle",       // edit (lucy-2.1) | restyle (lucy-restyle-2)
   rt: null,              // active realtime handle
   guards: null,
   connectStartedAt: 0,
