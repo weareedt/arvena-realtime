@@ -22,9 +22,13 @@ export const CONFIG = {
 
   // Cost & responsible-use guardrails (plan §8). Tune freely.
   // Hard ceiling on a single live session, in seconds. 0 disables.
-  MAX_SESSION_SECONDS: 10 * 60,
+  MAX_SESSION_SECONDS: 20,
   // Auto-disconnect after this many seconds with no operator interaction. 0 disables.
-  IDLE_TIMEOUT_SECONDS: 90,
+  IDLE_TIMEOUT_SECONDS: 0,
+
+  // Auto-start recording when the operator clicks GO LIVE (no separate Record
+  // click needed). The clip auto-saves as MP4 when the session ends.
+  AUTO_RECORD: true,
 
   // Show the "SIMULATED — AI GENERATED" disclosure badge (plan §10). Keep true.
   SHOW_SIMULATED_BADGE: true,
