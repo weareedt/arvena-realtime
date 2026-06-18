@@ -11,8 +11,11 @@ export const CONFIG = {
 
   DEFAULT_SCENARIO: "flood",
 
-  MAX_SESSION_SECONDS: 10 * 60,
-  IDLE_TIMEOUT_SECONDS: 90,
+  MAX_SESSION_SECONDS: 20,   // hard cap: each session auto-ends after ~20s
+  IDLE_TIMEOUT_SECONDS: 0,   // disabled — the short hard cap governs instead
+
+  // Auto-start recording on GO LIVE (no separate Record click needed).
+  AUTO_RECORD: true,
 
   SHOW_SIMULATED_BADGE: true,
 

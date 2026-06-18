@@ -62,6 +62,7 @@ async function goLive() {
           firstFrame = false;
           // Time-to-first-frame is a real, honest latency figure to surface.
           ui.setLatency(performance.now() - state.connectStartedAt);
+          if (CONFIG.AUTO_RECORD) startAutoRecord();
         }
       },
       onError: (err) => ui.setStatus("Error: " + (err?.message || err), "error"),
@@ -158,6 +159,23 @@ async function saveRecording() {
   } catch (err) {
     recorder.download(blob, name);
     ui.setStatus("Saved as WebM (MP4 conversion unavailable)", "error");
+  }
+}
+
+// Auto-start recording once the output feed has real frames (used on GO LIVE).
+async function startAutoRecord() {
+  if (recorder.isRecording() || !recorder.isSupported()) return;
+  // wait briefly for the output <video> to report real dimensions
+  for (let i = 0; i < 20 && !ui.els.arvenaOut.videoWidth; i++) {
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  const ok = await recorder.start(ui.els.arvenaOut, {
+    showBadge: CONFIG.SHOW_SIMULATED_BADGE,
+    badgeText: "SIMULATED — AI GENERATED",
+  });
+  if (ok) {
+    ui.setRecording(true);
+    ui.setStatus(recorder.hasAudio() ? "● REC + LIVE" : "● REC (no mic) + LIVE", "live");
   }
 }
 
