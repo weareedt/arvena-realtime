@@ -1,0 +1,397 @@
+/* ============================================================
+   EDT / ARVENA — Neo-Brutalist Retro-Tech
+   Electric Blue on Black · sharp corners · window chrome
+   ARVENA Neon Red reserved ONLY for the live / REC state.
+   ============================================================ */
+
+:root {
+  --edt-blue: #2D2DFF;
+  --edt-blue-hover: #0000CC;
+  --edt-black: #0A0A0A;
+  --edt-surface: #111111;
+  --edt-grey: #8C8C8C;
+  --edt-white: #FFFFFF;
+
+  /* ARVENA sub-brand accent — LIVE/REC state ONLY */
+  --arvena-red: #FF2D2D;
+
+  --font-display: 'Dela Gothic One', sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+
+  --border: 1px solid var(--edt-white);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-radius: 0; /* corners are ALWAYS sharp */
+}
+
+html, body {
+  background: var(--edt-black);
+  color: var(--edt-white);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.accent { color: var(--edt-blue); }
+.muted  { color: var(--edt-grey); }
+
+/* ============================================================
+   Hero
+   ============================================================ */
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: var(--border);
+  padding: 56px 32px 44px;
+}
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+.hero-inner { position: relative; max-width: 1100px; margin: 0 auto; }
+.eyebrow {
+  font: 600 12px/1 var(--font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--edt-blue);
+  margin-bottom: 18px;
+}
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(38px, 7vw, 76px);
+  line-height: 0.96;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+.hero-sub {
+  margin-top: 20px;
+  max-width: 620px;
+  color: var(--edt-grey);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   Console layout
+   ============================================================ */
+.console {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 32px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.feeds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+@media (max-width: 760px) {
+  .feeds, .stats { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   Window-chrome panel
+   ============================================================ */
+.panel {
+  background: var(--edt-surface);
+  border: var(--border);
+}
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--edt-black);
+  border-bottom: var(--border);
+}
+.titlebar.blue { background: var(--edt-blue); border-bottom-color: var(--edt-blue); }
+.win-name {
+  font: 500 13px/1 var(--font-body);
+  letter-spacing: 0.06em;
+  color: var(--edt-white);
+}
+.dots { display: flex; gap: 6px; }
+.dots i {
+  width: 9px; height: 9px;
+  border: 1px solid var(--edt-white);
+  display: block;
+}
+.panel-body { padding: 0; }
+
+/* ---- REC indicator (the ONLY place red is allowed) ---- */
+.rec {
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.12em;
+  color: var(--arvena-red);
+  animation: rec-blink 1.1s steps(1) infinite;
+}
+@keyframes rec-blink { 50% { opacity: 0.25; } }
+
+/* ============================================================
+   Video feeds
+   ============================================================ */
+.video-wrap {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  overflow: hidden;
+}
+.video-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+#cam-in { transform: scaleX(-1); } /* mirror raw webcam like a viewfinder */
+
+.video-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: 600 13px/1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--edt-grey);
+  text-align: center;
+}
+.video-placeholder .small {
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+
+/* SIMULATED disclosure badge — on-brand panel block (plan §10/§13.6) */
+.simulated-badge {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 10px;
+  background: rgba(10, 10, 10, 0.78);
+  border: var(--border);
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.1em;
+  color: var(--edt-white);
+  user-select: none;
+}
+
+/* ============================================================
+   Stat windows
+   ============================================================ */
+.stat-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px 12px;
+}
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.stat-num.small-num { font-size: 22px; }
+
+/* ============================================================
+   SCENE.EXE controls
+   ============================================================ */
+.scene-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
+}
+.scene-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.ctrl-label {
+  flex: 0 0 92px;
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--edt-grey);
+}
+
+.scenario-buttons, .mode-toggle { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Scenario + mode chips */
+.btn-chip, .btn-toggle {
+  font: 600 12px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--edt-white);
+  background: transparent;
+  border: var(--border);
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.btn-chip:hover, .btn-toggle:hover {
+  background: var(--edt-white);
+  color: var(--edt-black);
+}
+.btn-chip.active, .btn-toggle.active {
+  background: var(--edt-blue);
+  border-color: var(--edt-blue);
+  color: var(--edt-white);
+}
+
+/* Live prompt box */
+.prompt-row .prompt-input { flex: 1 1 280px; }
+.prompt-input {
+  background: var(--edt-black);
+  border: var(--border);
+  color: var(--edt-white);
+  font: 400 14px/1 var(--font-body);
+  padding: 12px 14px;
+}
+.prompt-input::placeholder { color: var(--edt-grey); }
+.prompt-input:focus { outline: 2px solid var(--edt-blue); outline-offset: -2px; }
+
+/* Buttons */
+.btn-primary {
+  font: 600 14px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--edt-white);
+  background: var(--edt-blue);
+  border: 1px solid var(--edt-blue);
+  padding: 14px 28px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.12s;
+}
+.btn-primary:hover:not(:disabled) { background: var(--edt-blue-hover); transform: scale(1.02); }
+
+.btn-secondary {
+  font: 600 13px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--edt-white);
+  background: transparent;
+  border: var(--border);
+  padding: 13px 20px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.btn-secondary:hover:not(:disabled) { background: var(--edt-white); color: var(--edt-black); }
+
+.btn-primary:disabled, .btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Recording state — the REC control is the one place (besides ON AIR) the
+   ARVENA Neon Red is allowed, since it signals a hot capture. */
+.btn-secondary.recording {
+  color: var(--arvena-red);
+  border-color: var(--arvena-red);
+  animation: rec-blink 1.1s steps(1) infinite;
+}
+.btn-secondary.recording:hover {
+  background: var(--arvena-red);
+  color: var(--edt-white);
+  animation: none;
+}
+
+.action-row { gap: 16px; }
+.status-line {
+  margin-left: auto;
+  font: 500 12px/1 var(--font-body);
+  letter-spacing: 0.06em;
+  color: var(--edt-grey);
+}
+.status-line.live { color: var(--arvena-red); }
+.status-line.error { color: var(--arvena-red); }
+.status-line.ok { color: var(--edt-blue); }
+
+/* ============================================================
+   Footer
+   ============================================================ */
+.console-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+  font: 500 11px/1.4 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--edt-white);
+}
+
+/* ============================================================
+   Dev usage meter (only injected with ?dev=1)
+   ============================================================ */
+.dev-usage {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 240px;
+  z-index: 50;
+}
+.dev-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.dev-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font: 500 12px/1 var(--font-body);
+  letter-spacing: 0.04em;
+  color: var(--edt-grey);
+}
+.dev-row b {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--edt-white);
+}
+.dev-reset { margin-top: 6px; padding: 9px 12px; font-size: 11px; }
+
+/* Footer toggle for the dev usage meter */
+.dev-toggle {
+  margin-left: auto;
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--edt-grey);
+  background: transparent;
+  border: 1px solid var(--edt-grey);
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.dev-toggle:hover { color: var(--edt-white); border-color: var(--edt-white); }
+.dev-toggle.on {
+  color: var(--edt-white);
+  border-color: var(--edt-blue);
+  background: var(--edt-blue);
+}
+.dev-note {
+  margin-top: 2px;
+  font: 400 10px/1.4 var(--font-body);
+  letter-spacing: 0.02em;
+  color: var(--edt-grey);
+}

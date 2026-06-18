@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2DFF">
+  <title>ARVENA · Realtime Scenario Generator — EDT</title>
+  <meta name="description" content="Live-edit a presenter into a generated scenario in real time. An EDT production tool powered by Decart Lucy.">
+
+  <!-- Favicon (EDT brand) -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg">
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png">
+  <link rel="icon" href="assets/favicon/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="assets/favicon/site.webmanifest">
+
+  <!-- Brand fonts: Dela Gothic One (display) + Space Grotesk (body/UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ===== Hero / header ===== -->
+  <header class="hero">
+    <div class="hero-grid" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <p class="eyebrow">EDT · ARVENA — PRODUCTION / BROADCAST</p>
+      <h1 class="hero-title">REALTIME<br><span class="accent">SCENARIO</span> GENERATOR</h1>
+      <p class="hero-sub">
+        Put a live presenter on location — flood, wildfire, storm — in real time.
+        Powered by Decart Lucy. Every frame is synthetic and labelled as such.
+      </p>
+    </div>
+  </header>
+
+  <main class="console">
+
+    <!-- ===== Feed row: CAMERA.IN + ARVENA.OUT ===== -->
+    <section class="feeds">
+
+      <!-- Raw webcam -->
+      <div class="panel feed-panel">
+        <div class="titlebar">
+          <span class="win-name">CAMERA.IN</span>
+          <span class="dots"><i></i><i></i><i></i></span>
+        </div>
+        <div class="panel-body video-wrap">
+          <video id="cam-in" autoplay playsinline muted></video>
+          <div id="cam-placeholder" class="video-placeholder">
+            <span>CAMERA OFFLINE</span>
+            <span class="small">Grant camera access to begin</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decart edited output -->
+      <div class="panel feed-panel">
+        <div class="titlebar">
+          <span class="win-name">ARVENA.OUT</span>
+          <span class="rec" id="rec-indicator" hidden>● ON AIR</span>
+          <span class="dots"><i></i><i></i><i></i></span>
+        </div>
+        <div class="panel-body video-wrap">
+          <video id="arvena-out" autoplay playsinline></video>
+          <div id="out-placeholder" class="video-placeholder">
+            <span>OUTPUT IDLE</span>
+            <span class="small">Press GO LIVE to generate</span>
+          </div>
+          <div id="simulated-badge" class="simulated-badge" hidden>▓ SIMULATED — AI GENERATED ▓</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===== Stat windows ===== -->
+    <section class="stats">
+      <div class="panel stat-panel">
+        <div class="titlebar blue"><span class="win-name">LATENCY.MS</span></div>
+        <div class="panel-body stat-body"><span id="stat-latency" class="stat-num">—</span></div>
+      </div>
+      <div class="panel stat-panel">
+        <div class="titlebar blue"><span class="win-name">SESSION.MIN</span></div>
+        <div class="panel-body stat-body"><span id="stat-session" class="stat-num">0:00</span></div>
+      </div>
+      <div class="panel stat-panel">
+        <div class="titlebar blue"><span class="win-name">MODEL.ID</span></div>
+        <div class="panel-body stat-body"><span id="stat-model" class="stat-num small-num">lucy-2.1</span></div>
+      </div>
+    </section>
+
+    <!-- ===== SCENE.EXE controls ===== -->
+    <section class="panel scene-panel">
+      <div class="titlebar">
+        <span class="win-name">SCENE.EXE</span>
+        <span class="dots"><i></i><i></i><i></i></span>
+      </div>
+      <div class="panel-body scene-body">
+
+        <div class="scene-row">
+          <span class="ctrl-label">Scenario</span>
+          <div id="scenario-buttons" class="scenario-buttons"><!-- injected by JS --></div>
+        </div>
+
+        <div class="scene-row">
+          <span class="ctrl-label">Mode</span>
+          <div class="mode-toggle">
+            <button class="btn-toggle active" data-mode="edit">LUCY 2.1 · EDIT</button>
+            <button class="btn-toggle" data-mode="restyle">RESTYLE 2 · STYLE</button>
+          </div>
+        </div>
+
+        <div class="scene-row prompt-row">
+          <span class="ctrl-label">Live prompt</span>
+          <input id="prompt-input" type="text" class="prompt-input"
+                 placeholder="Type a custom scene and press APPLY…" autocomplete="off">
+          <button id="apply-prompt" class="btn-secondary">APPLY</button>
+        </div>
+
+        <div class="scene-row action-row">
+          <button id="go-live" class="btn-primary">GO LIVE →</button>
+          <button id="record-btn" class="btn-secondary" disabled>● RECORD</button>
+          <button id="end-session" class="btn-secondary" disabled>END SESSION</button>
+          <span id="status-line" class="status-line">Idle</span>
+        </div>
+
+      </div>
+    </section>
+
+    <footer class="console-footer">
+      <span>EDT · EXPERIENTIAL DESIGN TEAM</span>
+      <span class="muted">Synthetic media. Not real footage. Do not present as real news.</span>
+      <button id="dev-toggle" class="dev-toggle" aria-pressed="false">USAGE METER · OFF</button>
+    </footer>
+
+  </main>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

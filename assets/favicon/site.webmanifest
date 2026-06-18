@@ -1,0 +1,23 @@
+{
+  "name": "ARVENA · Realtime Scenario Generator",
+  "short_name": "ARVENA",
+  "description": "Live-edit a presenter into a generated scenario in real time — an EDT (Experiential Design Team) production tool powered by Decart Lucy.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#2D2DFF",
+  "icons": [
+    {
+      "src": "web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

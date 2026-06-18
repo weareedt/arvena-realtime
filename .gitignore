@@ -1,0 +1,26 @@
+# NOTE: config.js holds NO secrets (endpoints, model IDs, caps, price only) and
+# IS committed — the app imports it at runtime, so it must ship to GitHub/Vercel.
+# The Decart key is never here; it's the DECART_API_KEY env var (see below).
+
+# Secrets / env — DECART_API_KEY lives here for `vercel dev`, never committed.
+.env
+.env.local
+.env*.local
+
+# Dependencies (only present if you add a build step later)
+node_modules/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/
+
+# Vercel
+.vercel/
+.vercel
+
+.vercel
