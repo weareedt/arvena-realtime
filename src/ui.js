@@ -58,7 +58,7 @@ export function setLive(isLive, showBadge) {
   els.outPlaceholder.style.display = isLive ? "none" : "";
   els.goLive.disabled = isLive;
   els.endSession.disabled = !isLive;
-  els.recordBtn.disabled = !isLive;
+  if (els.recordBtn) els.recordBtn.disabled = !isLive;
   if (!isLive) {
     setRecording(false);
     els.arvenaOut.srcObject = null;
@@ -66,7 +66,9 @@ export function setLive(isLive, showBadge) {
   }
 }
 
+// Recording is automatic now; this only updates the (optional) record button.
 export function setRecording(on) {
+  if (!els.recordBtn) return;
   els.recordBtn.classList.toggle("recording", on);
   els.recordBtn.textContent = on ? "■ STOP REC" : "● RECORD";
 }
