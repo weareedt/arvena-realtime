@@ -179,29 +179,6 @@ async function startAutoRecord() {
   }
 }
 
-async function toggleRecord() {
-  if (state.status !== "live") return;
-  bump();
-  if (recorder.isRecording()) {
-    await saveRecording();
-  } else {
-    if (!recorder.isSupported()) {
-      ui.setStatus("Recording not supported in this browser", "error");
-      return;
-    }
-    const ok = await recorder.start(ui.els.arvenaOut, {
-      showBadge: CONFIG.SHOW_SIMULATED_BADGE,
-      badgeText: "SIMULATED — AI GENERATED",
-    });
-    if (ok) {
-      ui.setRecording(true);
-      ui.setStatus(recorder.hasAudio() ? "● REC + LIVE" : "● REC (no mic) + LIVE", "live");
-    } else {
-      ui.setStatus("Could not start recording (no output yet?)", "error");
-    }
-  }
-}
-
 async function applyCustomPrompt() {
   const text = ui.els.promptInput.value.trim();
   if (!text) return;
@@ -240,7 +217,6 @@ function init() {
   usage.init();
 
   ui.els.goLive.addEventListener("click", goLive);
-  ui.els.recordBtn.addEventListener("click", toggleRecord);
   ui.els.endSession.addEventListener("click", () => endSession("Session ended"));
   ui.els.applyPrompt.addEventListener("click", applyCustomPrompt);
   ui.els.promptInput.addEventListener("keydown", (e) => {
