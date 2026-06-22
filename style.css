@@ -47,17 +47,17 @@ html, body {
    Stage layout — centered single-preview screen
    ============================================================ */
 .stage {
-  min-height: 100vh;
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 40px 24px 56px;
+  height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 12px 16px 10px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 22px;
+  align-items: stretch;
+  gap: 10px;
 }
 .eyebrow {
-  font: 600 12px/1 var(--font-body);
+  font: 600 11px/1 var(--font-body);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--edt-blue);
@@ -66,14 +66,26 @@ html, body {
 .stage-title {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(32px, 6vw, 56px);
+  font-size: clamp(20px, 3vw, 34px);
   line-height: 1;
   letter-spacing: -0.03em;
   text-transform: uppercase;
   text-align: center;
 }
 
-.preview-panel { width: 100%; }
+/* Big output fills the remaining vertical space (almost fullscreen). */
+.preview-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.preview-panel .video-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  aspect-ratio: auto;
+}
 
 .stage-actions {
   display: flex;
@@ -144,11 +156,12 @@ html, body {
 /* ---- Picture-in-picture: raw camera inset over the Decart output ---- */
 .pip {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 26%;
-  min-width: 130px;
-  max-width: 220px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22%;
+  min-width: 150px;
+  max-width: 260px;
   border: var(--border);
   background: var(--edt-black);
   z-index: 3;
