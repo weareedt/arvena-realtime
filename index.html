@@ -22,109 +22,38 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- ===== Hero / header ===== -->
-  <header class="hero">
-    <div class="hero-grid" aria-hidden="true"></div>
-    <div class="hero-inner">
-      <p class="eyebrow">EDT · ARVENA — PRODUCTION / BROADCAST</p>
-      <h1 class="hero-title">REALTIME<br><span class="accent">SCENARIO</span> GENERATOR</h1>
-      <p class="hero-sub">
-        Put a live presenter on location — flood, wildfire, storm — in real time.
-        Powered by Decart Lucy. Every frame is synthetic and labelled as such.
-      </p>
-    </div>
-  </header>
+  <main class="stage">
 
-  <main class="console">
+    <p class="eyebrow">EDT · ARVENA — PRODUCTION / BROADCAST</p>
+    <h1 class="stage-title">DECART VIEW</h1>
 
-    <!-- ===== Feed row: CAMERA.IN + ARVENA.OUT ===== -->
-    <section class="feeds">
-
-      <!-- Raw webcam -->
-      <div class="panel feed-panel">
-        <div class="titlebar">
-          <span class="win-name">CAMERA.IN</span>
-          <span class="dots"><i></i><i></i><i></i></span>
-        </div>
-        <div class="panel-body video-wrap">
-          <video id="cam-in" autoplay playsinline muted></video>
-          <div id="cam-placeholder" class="video-placeholder">
-            <span>CAMERA OFFLINE</span>
-            <span class="small">Grant camera access to begin</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Decart edited output -->
-      <div class="panel feed-panel">
-        <div class="titlebar">
-          <span class="win-name">ARVENA.OUT</span>
-          <span class="rec" id="rec-indicator" hidden>● ON AIR</span>
-          <span class="dots"><i></i><i></i><i></i></span>
-        </div>
-        <div class="panel-body video-wrap">
-          <video id="arvena-out" autoplay playsinline></video>
-          <div id="out-placeholder" class="video-placeholder">
-            <span>OUTPUT IDLE</span>
-            <span class="small">Press GO LIVE to generate</span>
-          </div>
-          <div id="simulated-badge" class="simulated-badge" hidden>▓ SIMULATED — AI GENERATED ▓</div>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- ===== Stat windows ===== -->
-    <section class="stats">
-      <div class="panel stat-panel">
-        <div class="titlebar blue"><span class="win-name">LATENCY.MS</span></div>
-        <div class="panel-body stat-body"><span id="stat-latency" class="stat-num">—</span></div>
-      </div>
-      <div class="panel stat-panel">
-        <div class="titlebar blue"><span class="win-name">SESSION.MIN</span></div>
-        <div class="panel-body stat-body"><span id="stat-session" class="stat-num">0:00</span></div>
-      </div>
-      <div class="panel stat-panel">
-        <div class="titlebar blue"><span class="win-name">MODEL.ID</span></div>
-        <div class="panel-body stat-body"><span id="stat-model" class="stat-num small-num">lucy-restyle-2</span></div>
-      </div>
-    </section>
-
-    <!-- ===== SCENE.EXE controls ===== -->
-    <section class="panel scene-panel">
+    <!-- ===== Single preview: raw webcam → Decart edited feed ===== -->
+    <div class="panel preview-panel">
       <div class="titlebar">
-        <span class="win-name">SCENE.EXE</span>
+        <span class="win-name">PREVIEW</span>
+        <span class="rec" id="rec-indicator" hidden>● ON AIR</span>
         <span class="dots"><i></i><i></i><i></i></span>
       </div>
-      <div class="panel-body scene-body">
-
-        <div class="scene-row">
-          <span class="ctrl-label">Scenario</span>
-          <div id="scenario-buttons" class="scenario-buttons"><!-- injected by JS --></div>
+      <div class="panel-body video-wrap">
+        <video id="preview" autoplay playsinline muted></video>
+        <div id="preview-placeholder" class="video-placeholder">
+          <span>CAMERA OFFLINE</span>
+          <span class="small">Grant camera access to begin</span>
         </div>
-
-        <div class="scene-row">
-          <span class="ctrl-label">Mode</span>
-          <div class="mode-toggle">
-            <button class="btn-toggle active" data-mode="restyle">RESTYLE 2 · STYLE</button>
-          </div>
-        </div>
-
-        <div class="scene-row prompt-row">
-          <span class="ctrl-label">Live prompt</span>
-          <input id="prompt-input" type="text" class="prompt-input"
-                 placeholder="Type a custom scene and press APPLY…" autocomplete="off">
-          <button id="apply-prompt" class="btn-secondary">APPLY</button>
-        </div>
-
-        <div class="scene-row action-row">
-          <button id="go-live" class="btn-primary">GO LIVE →</button>
-          <button id="end-session" class="btn-secondary" disabled>END SESSION</button>
-          <span id="status-line" class="status-line">Idle</span>
-        </div>
-
+        <div id="simulated-badge" class="simulated-badge" hidden>▓ SIMULATED — AI GENERATED ▓</div>
       </div>
-    </section>
+    </div>
+
+    <!-- ===== Start / Stop ===== -->
+    <div class="stage-actions">
+      <button id="go-live" class="btn-primary">START →</button>
+      <button id="end-session" class="btn-secondary" disabled>STOP</button>
+    </div>
+
+    <!-- ===== Compact scenario chips ===== -->
+    <div id="scenario-buttons" class="scenario-buttons stage-scenarios"><!-- injected by JS --></div>
+
+    <p id="status-line" class="status-line">Idle</p>
 
     <footer class="console-footer">
       <span>EDT · EXPERIENTIAL DESIGN TEAM</span>

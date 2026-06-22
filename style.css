@@ -39,72 +39,46 @@ html, body {
 .muted  { color: var(--edt-grey); }
 
 /* ============================================================
-   Hero
+   Stage layout — centered single-preview screen
    ============================================================ */
-.hero {
-  position: relative;
-  overflow: hidden;
-  border-bottom: var(--border);
-  padding: 56px 32px 44px;
+.stage {
+  min-height: 100vh;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 24px 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
 }
-.hero-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
-  background-size: 28px 28px;
-  pointer-events: none;
-}
-.hero-inner { position: relative; max-width: 1100px; margin: 0 auto; }
 .eyebrow {
   font: 600 12px/1 var(--font-body);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--edt-blue);
-  margin-bottom: 18px;
+  text-align: center;
 }
-.hero-title {
+.stage-title {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(38px, 7vw, 76px);
-  line-height: 0.96;
+  font-size: clamp(32px, 6vw, 56px);
+  line-height: 1;
   letter-spacing: -0.03em;
   text-transform: uppercase;
-}
-.hero-sub {
-  margin-top: 20px;
-  max-width: 620px;
-  color: var(--edt-grey);
-  font-size: 15px;
-  line-height: 1.5;
+  text-align: center;
 }
 
-/* ============================================================
-   Console layout
-   ============================================================ */
-.console {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 32px 32px 64px;
+.preview-panel { width: 100%; }
+
+.stage-actions {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+  justify-content: center;
 }
 
-.feeds {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-.stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-@media (max-width: 760px) {
-  .feeds, .stats { grid-template-columns: 1fr; }
-}
+.stage-scenarios { justify-content: center; }
+
+.status-line { text-align: center; }
 
 /* ============================================================
    Window-chrome panel
@@ -161,7 +135,7 @@ html, body {
   object-fit: cover;
   display: block;
 }
-#cam-in { transform: scaleX(-1); } /* mirror raw webcam like a viewfinder */
+#preview.mirror { transform: scaleX(-1); } /* mirror raw webcam like a viewfinder */
 
 .video-placeholder {
   position: absolute;
@@ -318,9 +292,7 @@ html, body {
   animation: none;
 }
 
-.action-row { gap: 16px; }
 .status-line {
-  margin-left: auto;
   font: 500 12px/1 var(--font-body);
   letter-spacing: 0.06em;
   color: var(--edt-grey);
@@ -333,11 +305,14 @@ html, body {
    Footer
    ============================================================ */
 .console-footer {
+  width: 100%;
+  margin-top: auto;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  padding-top: 8px;
+  padding-top: 24px;
   font: 500 11px/1.4 var(--font-body);
   letter-spacing: 0.08em;
   text-transform: uppercase;

@@ -2,23 +2,15 @@
 import { SCENARIOS } from "./scenarios.js";
 
 export const els = {
-  camIn: document.getElementById("cam-in"),
-  camPlaceholder: document.getElementById("cam-placeholder"),
-  arvenaOut: document.getElementById("arvena-out"),
-  outPlaceholder: document.getElementById("out-placeholder"),
+  // One preview box: raw webcam before Start, Decart edited feed after.
+  preview: document.getElementById("preview"),
+  previewPlaceholder: document.getElementById("preview-placeholder"),
   simulatedBadge: document.getElementById("simulated-badge"),
   recIndicator: document.getElementById("rec-indicator"),
 
-  statLatency: document.getElementById("stat-latency"),
-  statSession: document.getElementById("stat-session"),
-  statModel: document.getElementById("stat-model"),
-
   scenarioButtons: document.getElementById("scenario-buttons"),
-  modeToggles: document.querySelectorAll(".btn-toggle"),
-  promptInput: document.getElementById("prompt-input"),
-  applyPrompt: document.getElementById("apply-prompt"),
   goLive: document.getElementById("go-live"),
-  recordBtn: document.getElementById("record-btn"),
+  recordBtn: document.getElementById("record-btn"), // removed from DOM → null
   endSession: document.getElementById("end-session"),
   statusLine: document.getElementById("status-line"),
   devToggle: document.getElementById("dev-toggle"),
@@ -43,10 +35,6 @@ export function setActiveScenario(id) {
   });
 }
 
-export function setActiveMode(mode) {
-  els.modeToggles.forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
-}
-
 export function setStatus(text, kind = "") {
   els.statusLine.textContent = text;
   els.statusLine.className = "status-line" + (kind ? " " + kind : "");
@@ -55,15 +43,11 @@ export function setStatus(text, kind = "") {
 export function setLive(isLive, showBadge) {
   els.recIndicator.hidden = !isLive;
   els.simulatedBadge.hidden = !(isLive && showBadge);
-  els.outPlaceholder.style.display = isLive ? "none" : "";
   els.goLive.disabled = isLive;
   els.endSession.disabled = !isLive;
   if (els.recordBtn) els.recordBtn.disabled = !isLive;
-  if (!isLive) {
-    setRecording(false);
-    els.arvenaOut.srcObject = null;
-    els.statLatency.textContent = "—";
-  }
+  if (!isLive) setRecording(false);
+  // Note: the raw preview is restored by main.js on idle (don't blank here).
 }
 
 // Recording is automatic now; this only updates the (optional) record button.
@@ -73,26 +57,16 @@ export function setRecording(on) {
   els.recordBtn.textContent = on ? "■ STOP REC" : "● RECORD";
 }
 
+// Raw webcam → mirror it like a viewfinder.
 export function showLocalStream(stream) {
-  els.camIn.srcObject = stream;
-  els.camPlaceholder.style.display = "none";
+  els.preview.srcObject = stream;
+  els.preview.classList.add("mirror");
+  els.previewPlaceholder.style.display = "none";
 }
 
+// Decart edited feed → not mirrored.
 export function showRemoteStream(stream) {
-  els.arvenaOut.srcObject = stream;
-  els.outPlaceholder.style.display = "none";
-}
-
-export function setModelLabel(modelId) {
-  els.statModel.textContent = modelId;
-}
-
-export function setLatency(ms) {
-  els.statLatency.textContent = ms == null ? "—" : Math.round(ms);
-}
-
-export function setSessionTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = String(seconds % 60).padStart(2, "0");
-  els.statSession.textContent = `${m}:${s}`;
+  els.preview.srcObject = stream;
+  els.preview.classList.remove("mirror");
+  els.previewPlaceholder.style.display = "none";
 }

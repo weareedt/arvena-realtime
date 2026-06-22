@@ -1,5 +1,5 @@
 // App orchestrator: idle → connecting → live → idle.
-// Wires the SCENE.EXE controls to the Decart wrapper and enforces guardrails.
+// One preview box shows the raw webcam when idle, the Decart edited feed when live.
 import { CONFIG } from "../config.js";
 import { startRealtime } from "./decart.js";
 import { fetchCredential, createGuards } from "./session.js";
@@ -12,25 +12,47 @@ import * as mp4 from "./mp4.js";
 const state = {
   status: "idle",        // idle | connecting | live
   scenarioId: CONFIG.DEFAULT_SCENARIO || DEFAULT_SCENARIO_ID,
-  mode: "restyle",       // edit (lucy-2.1) | restyle (lucy-restyle-2)
+  mode: "restyle",       // restyle (lucy-restyle-2)
   rt: null,              // active realtime handle
   guards: null,
+  previewStream: null,   // raw webcam shown while idle
   connectStartedAt: 0,
 };
-
-// ---- helpers ----------------------------------------------------------------
 
 function modelIdForMode(mode) {
   return mode === "restyle" ? CONFIG.MODELS.restyle : CONFIG.MODELS.edit;
 }
 
-function currentPromptText() {
-  const typed = ui.els.promptInput.value.trim();
-  if (typed) return typed;
-  return getScenario(state.scenarioId).prompt;
+function bump() { state.guards?.bump(); }
+
+// ---- raw preview (idle) -----------------------------------------------------
+
+async function startPreview(announce = true) {
+  if (state.status !== "idle" || state.previewStream) return;
+  if (!navigator.mediaDevices?.getUserMedia) {
+    ui.setStatus("Camera needs a secure context (https or localhost).", "error");
+    return;
+  }
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" }, audio: false,
+    });
+    if (state.status !== "idle") { s.getTracks().forEach((t) => t.stop()); return; }
+    state.previewStream = s;
+    ui.showLocalStream(s);
+    if (announce) ui.setStatus("Camera ready — press START", "ok");
+  } catch (err) {
+    const denied = err?.name === "NotAllowedError";
+    ui.setStatus(denied ? "Camera blocked — allow it, then click the preview" : "Camera error: " + (err?.message || err), "error");
+  }
 }
 
-function bump() { state.guards?.bump(); }
+function stopPreview() {
+  if (state.previewStream) {
+    state.previewStream.getTracks().forEach((t) => t.stop());
+    state.previewStream = null;
+  }
+}
 
 // ---- session lifecycle ------------------------------------------------------
 
@@ -39,10 +61,10 @@ async function goLive() {
   state.status = "connecting";
   ui.setStatus("Requesting credential…");
   ui.els.goLive.disabled = true;
+  stopPreview(); // free the camera for the realtime connection
 
   const scenario = getScenario(state.scenarioId);
   const modelId = modelIdForMode(state.mode);
-  ui.setModelLabel(modelId);
 
   try {
     const credential = await fetchCredential();
@@ -53,15 +75,13 @@ async function goLive() {
     state.rt = await startRealtime({
       modelId,
       credential,
-      prompt: currentPromptText(),
+      prompt: scenario.prompt,
       enhance: scenario.enhance,
       onLocalStream: ui.showLocalStream,
       onRemoteStream: (stream) => {
         ui.showRemoteStream(stream);
         if (firstFrame) {
           firstFrame = false;
-          // Time-to-first-frame is a real, honest latency figure to surface.
-          ui.setLatency(performance.now() - state.connectStartedAt);
           if (CONFIG.AUTO_RECORD) startAutoRecord();
         }
       },
@@ -80,7 +100,7 @@ async function goLive() {
     usage.startSession();
 
     state.guards = createGuards({
-      onTick: (s) => { ui.setSessionTime(s); usage.recordTick(); },
+      onTick: () => usage.recordTick(),
       onIdleTimeout: () => endSession("Idle timeout — session ended to save cost"),
       onMaxReached: () => endSession("Session time cap reached"),
     });
@@ -108,8 +128,8 @@ async function teardown() {
   state.rt = null;
   state.status = "idle";
   ui.setLive(false, CONFIG.SHOW_SIMULATED_BADGE);
-  ui.setSessionTime(0);
   usage.endSession();
+  startPreview(false); // restore the raw webcam without clobbering the end/saved message
 }
 
 // ---- live controls ----------------------------------------------------------
@@ -119,21 +139,9 @@ async function applyScenario(id) {
   ui.setActiveScenario(id);
   bump();
   const scenario = getScenario(id);
-
-  // Studio = panic/reset; also clear any custom prompt so it truly resets.
-  if (id === "studio") ui.els.promptInput.value = "";
-
   if (state.status === "live" && state.rt) {
-    // Switching mode requires a reconnect (different model); otherwise just
-    // swap the prompt live — the operator's main control.
-    if (scenario.mode !== state.mode) {
-      state.mode = scenario.mode;
-      ui.setActiveMode(state.mode);
-      await reconnect();
-    } else {
-      ui.setStatus("● LIVE — " + scenario.label, "live");
-      await state.rt.setPrompt(scenario.prompt, scenario.enhance);
-    }
+    ui.setStatus("● LIVE — " + scenario.label, "live");
+    await state.rt.setPrompt(scenario.prompt, scenario.enhance);
   }
 }
 
@@ -162,14 +170,14 @@ async function saveRecording() {
   }
 }
 
-// Auto-start recording once the output feed has real frames (used on GO LIVE).
+// Auto-start recording once the output feed has real frames (used on START).
 async function startAutoRecord() {
   if (recorder.isRecording() || !recorder.isSupported()) return;
-  // wait briefly for the output <video> to report real dimensions
-  for (let i = 0; i < 20 && !ui.els.arvenaOut.videoWidth; i++) {
+  // wait briefly for the preview <video> to report real dimensions
+  for (let i = 0; i < 20 && !ui.els.preview.videoWidth; i++) {
     await new Promise((r) => setTimeout(r, 150));
   }
-  const ok = await recorder.start(ui.els.arvenaOut, {
+  const ok = await recorder.start(ui.els.preview, {
     showBadge: CONFIG.SHOW_SIMULATED_BADGE,
     badgeText: "SIMULATED — AI GENERATED",
   });
@@ -179,58 +187,22 @@ async function startAutoRecord() {
   }
 }
 
-async function applyCustomPrompt() {
-  const text = ui.els.promptInput.value.trim();
-  if (!text) return;
-  bump();
-  if (state.status === "live" && state.rt) {
-    ui.setStatus("● LIVE — custom prompt", "live");
-    await state.rt.setPrompt(text, true);
-  }
-}
-
-async function setMode(mode) {
-  if (mode === state.mode) return;
-  state.mode = mode;
-  ui.setActiveMode(mode);
-  bump();
-  if (state.status === "live") await reconnect();
-}
-
-// Reconnect with current mode/scenario/prompt (used for model switches).
-async function reconnect() {
-  ui.setStatus("Switching model…");
-  try { await state.rt?.stop(); } catch { /* ignore */ }
-  state.rt = null;
-  state.status = "idle";
-  state.guards?.stop();
-  await goLive();
-}
-
 // ---- boot -------------------------------------------------------------------
 
 function init() {
   ui.renderScenarios(state.scenarioId, applyScenario);
-  ui.setActiveMode(state.mode);
-  ui.setModelLabel(modelIdForMode(state.mode));
   ui.setLive(false, CONFIG.SHOW_SIMULATED_BADGE);
   usage.init();
 
   ui.els.goLive.addEventListener("click", goLive);
   ui.els.endSession.addEventListener("click", () => endSession("Session ended"));
-  ui.els.applyPrompt.addEventListener("click", applyCustomPrompt);
-  ui.els.promptInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") applyCustomPrompt();
-  });
-  ui.els.modeToggles.forEach((b) =>
-    b.addEventListener("click", () => setMode(b.dataset.mode))
-  );
   ui.els.devToggle.addEventListener("click", usage.toggle);
+  ui.els.previewPlaceholder.addEventListener("click", startPreview);
 
   // End the session cleanly if the tab closes (stop burning generated seconds).
   window.addEventListener("beforeunload", () => { state.rt?.stop?.(); });
 
-  ui.setStatus("Idle — ready");
+  startPreview(); // show the raw webcam straight away
 }
 
 init();
