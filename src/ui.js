@@ -2,9 +2,11 @@
 import { SCENARIOS } from "./scenarios.js";
 
 export const els = {
-  // One preview box: raw webcam before Start, Decart edited feed after.
-  preview: document.getElementById("preview"),
-  previewPlaceholder: document.getElementById("preview-placeholder"),
+  // Picture-in-picture: big = Decart output, small inset = raw camera.
+  output: document.getElementById("output"),
+  outputPlaceholder: document.getElementById("output-placeholder"),
+  pipCam: document.getElementById("pip-cam"),
+  pipPlaceholder: document.getElementById("pip-placeholder"),
   simulatedBadge: document.getElementById("simulated-badge"),
   recIndicator: document.getElementById("rec-indicator"),
 
@@ -46,8 +48,12 @@ export function setLive(isLive, showBadge) {
   els.goLive.disabled = isLive;
   els.endSession.disabled = !isLive;
   if (els.recordBtn) els.recordBtn.disabled = !isLive;
-  if (!isLive) setRecording(false);
-  // Note: the raw preview is restored by main.js on idle (don't blank here).
+  if (!isLive) {
+    setRecording(false);
+    // Clear the big output back to its placeholder; the raw-camera PiP stays on.
+    els.output.srcObject = null;
+    els.outputPlaceholder.style.display = "";
+  }
 }
 
 // Recording is automatic now; this only updates the (optional) record button.
@@ -57,16 +63,15 @@ export function setRecording(on) {
   els.recordBtn.textContent = on ? "■ STOP REC" : "● RECORD";
 }
 
-// Raw webcam → mirror it like a viewfinder.
+// Raw webcam → the small PiP inset, mirrored like a viewfinder.
 export function showLocalStream(stream) {
-  els.preview.srcObject = stream;
-  els.preview.classList.add("mirror");
-  els.previewPlaceholder.style.display = "none";
+  els.pipCam.srcObject = stream;
+  els.pipCam.classList.add("mirror");
+  els.pipPlaceholder.style.display = "none";
 }
 
-// Decart edited feed → not mirrored.
+// Decart edited feed → the big output, not mirrored.
 export function showRemoteStream(stream) {
-  els.preview.srcObject = stream;
-  els.preview.classList.remove("mirror");
-  els.previewPlaceholder.style.display = "none";
+  els.output.srcObject = stream;
+  els.outputPlaceholder.style.display = "none";
 }
