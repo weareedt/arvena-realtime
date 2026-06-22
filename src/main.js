@@ -173,11 +173,11 @@ async function saveRecording() {
 // Auto-start recording once the output feed has real frames (used on START).
 async function startAutoRecord() {
   if (recorder.isRecording() || !recorder.isSupported()) return;
-  // wait briefly for the preview <video> to report real dimensions
-  for (let i = 0; i < 20 && !ui.els.preview.videoWidth; i++) {
+  // wait briefly for the output <video> to report real dimensions
+  for (let i = 0; i < 20 && !ui.els.output.videoWidth; i++) {
     await new Promise((r) => setTimeout(r, 150));
   }
-  const ok = await recorder.start(ui.els.preview, {
+  const ok = await recorder.start(ui.els.output, {
     showBadge: CONFIG.SHOW_SIMULATED_BADGE,
     badgeText: "SIMULATED — AI GENERATED",
   });
@@ -197,7 +197,7 @@ function init() {
   ui.els.goLive.addEventListener("click", goLive);
   ui.els.endSession.addEventListener("click", () => endSession("Session ended"));
   ui.els.devToggle.addEventListener("click", usage.toggle);
-  ui.els.previewPlaceholder.addEventListener("click", startPreview);
+  ui.els.pipPlaceholder.addEventListener("click", startPreview);
 
   // End the session cleanly if the tab closes (stop burning generated seconds).
   window.addEventListener("beforeunload", () => { state.rt?.stop?.(); });
