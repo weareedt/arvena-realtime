@@ -298,6 +298,12 @@ html, body {
   border-color: var(--edt-blue);
   color: var(--edt-white);
 }
+.btn-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-toggle:disabled:hover { background: transparent; color: var(--edt-white); }
+.btn-toggle.active:disabled:hover { background: var(--edt-blue); color: var(--edt-white); }
 
 /* Live prompt box */
 .prompt-row .prompt-input { flex: 1 1 280px; }

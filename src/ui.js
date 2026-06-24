@@ -11,6 +11,7 @@ export const els = {
   recIndicator: document.getElementById("rec-indicator"),
 
   scenarioButtons: document.getElementById("scenario-buttons"),
+  engineButtons: document.getElementById("engine-toggle"),
   goLive: document.getElementById("go-live"),
   recordBtn: document.getElementById("record-btn"), // removed from DOM → null
   endSession: document.getElementById("end-session"),
@@ -37,6 +38,29 @@ export function setActiveScenario(id) {
   });
 }
 
+/** Render the engine toggle: LIVE AI (Decart, paid) vs OFFLINE (local, free). */
+const ENGINES = [
+  { id: "decart", label: "Live AI" },
+  { id: "local", label: "Offline · Free" },
+];
+export function renderEngineToggle(activeEngine, onPick) {
+  els.engineButtons.innerHTML = "";
+  for (const e of ENGINES) {
+    const btn = document.createElement("button");
+    btn.className = "btn-toggle" + (e.id === activeEngine ? " active" : "");
+    btn.dataset.engine = e.id;
+    btn.textContent = e.label.toUpperCase();
+    btn.addEventListener("click", () => onPick(e.id));
+    els.engineButtons.appendChild(btn);
+  }
+}
+
+export function setActiveEngine(engine) {
+  els.engineButtons?.querySelectorAll(".btn-toggle").forEach((b) => {
+    b.classList.toggle("active", b.dataset.engine === engine);
+  });
+}
+
 export function setStatus(text, kind = "") {
   els.statusLine.textContent = text;
   els.statusLine.className = "status-line" + (kind ? " " + kind : "");
@@ -48,6 +72,8 @@ export function setLive(isLive, showBadge) {
   els.goLive.disabled = isLive;
   els.endSession.disabled = !isLive;
   if (els.recordBtn) els.recordBtn.disabled = !isLive;
+  // Can't switch engines mid-session — lock the toggle while live.
+  els.engineButtons?.querySelectorAll(".btn-toggle").forEach((b) => { b.disabled = isLive; });
   if (!isLive) {
     setRecording(false);
     // Clear the big output back to its placeholder; the raw-camera PiP stays on.

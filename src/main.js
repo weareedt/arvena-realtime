@@ -11,9 +11,11 @@ import * as mp4 from "./mp4.js";
 
 const state = {
   status: "idle",        // idle | connecting | live
+  engine: CONFIG.DEFAULT_ENGINE || "decart", // decart (paid live AI) | local (free)
   scenarioId: CONFIG.DEFAULT_SCENARIO || DEFAULT_SCENARIO_ID,
   mode: "restyle",       // restyle (lucy-restyle-2)
-  rt: null,              // active realtime handle
+  rt: null,              // active Decart realtime handle
+  local: null,           // active offline segmentation handle
   guards: null,
   previewStream: null,   // raw webcam shown while idle
   connectStartedAt: 0,
@@ -58,6 +60,11 @@ function stopPreview() {
 
 async function goLive() {
   if (state.status !== "idle") return;
+  if (state.engine === "local") return goLiveLocal();
+  return goLiveDecart();
+}
+
+async function goLiveDecart() {
   state.status = "connecting";
   ui.setStatus("Requesting credential…");
   ui.els.goLive.disabled = true;
@@ -111,6 +118,51 @@ async function goLive() {
   }
 }
 
+// Offline engine: local segmentation + procedural background. No Decart, no
+// per-second cost, no credential, no tight time cap.
+async function goLiveLocal() {
+  state.status = "connecting";
+  ui.setStatus("Loading segmentation model…");
+  ui.els.goLive.disabled = true;
+  stopPreview(); // free the camera for the segmentation capture
+
+  const scenario = getScenario(state.scenarioId);
+  try {
+    // Lazy-load the segmentation engine so its CDN deps can never break app boot.
+    const { startSegmentation } = await import("./segment.js");
+    state.local = await startSegmentation({
+      width: CONFIG.LOCAL?.WIDTH,
+      height: CONFIG.LOCAL?.HEIGHT,
+      fps: CONFIG.LOCAL?.FPS,
+      feather: CONFIG.LOCAL?.EDGE_FEATHER_PX,
+      engine: CONFIG.LOCAL?.SEG_ENGINE,
+      workingWidth: CONFIG.LOCAL?.RVM_WORKING_WIDTH,
+      downsampleRatio: CONFIG.LOCAL?.RVM_DOWNSAMPLE,
+      scenarioId: state.scenarioId,
+      onLocalStream: ui.showLocalStream,
+      onError: (err) => ui.setStatus("Error: " + (err?.message || err), "error"),
+    });
+    ui.showRemoteStream(state.local.stream);
+
+    state.status = "live";
+    ui.setLive(true, CONFIG.SHOW_SIMULATED_BADGE);
+    const tag = state.local.engine === "rvm" ? "RVM" : "segmentation";
+    ui.setStatus(`● LIVE (offline · free · ${tag}) — ` + scenario.label, "live");
+    if (CONFIG.AUTO_RECORD) startAutoRecord();
+
+    // No cost ticks — offline generation is free. Only enforce a cap if set.
+    state.guards = createGuards({
+      maxSeconds: CONFIG.LOCAL?.MAX_SESSION_SECONDS ?? 0,
+      idleSeconds: 0,
+      onMaxReached: () => endSession("Session time cap reached"),
+    });
+    state.guards.start();
+  } catch (err) {
+    ui.setStatus(err?.message || String(err), "error");
+    teardown();
+  }
+}
+
 async function endSession(reason) {
   if (state.status === "idle") return;
   await teardown();
@@ -126,6 +178,8 @@ async function teardown() {
   state.guards = null;
   try { await state.rt?.stop(); } catch { /* ignore */ }
   state.rt = null;
+  try { await state.local?.stop(); } catch { /* ignore */ }
+  state.local = null;
   state.status = "idle";
   ui.setLive(false, CONFIG.SHOW_SIMULATED_BADGE);
   usage.endSession();
@@ -142,6 +196,32 @@ async function applyScenario(id) {
   if (state.status === "live" && state.rt) {
     ui.setStatus("● LIVE — " + scenario.label, "live");
     await state.rt.setPrompt(scenario.prompt, scenario.enhance);
+  } else if (state.status === "live" && state.local) {
+    ui.setStatus("● LIVE (offline · free) — " + scenario.label, "live");
+    state.local.setBackground(id);
+  }
+}
+
+// Switch engine (idle only — the toggle is locked while live).
+function setEngine(engine) {
+  if (state.status !== "idle" || engine === state.engine) return;
+  state.engine = engine;
+  ui.setActiveEngine(engine);
+  ui.setStatus(
+    engine === "local"
+      ? "Offline engine — free, no time cap. Press START"
+      : "Live AI engine — Decart restyle. Press START",
+    "ok",
+  );
+  // Warm up the offline matting model in the background so START is instant
+  // (downloads + compiles WebGL shaders while the operator picks a scenario).
+  if (engine === "local" && (CONFIG.LOCAL?.SEG_ENGINE ?? "rvm") === "rvm") {
+    import("./segment.js")
+      .then((m) => m.prewarm({
+        workingWidth: CONFIG.LOCAL?.RVM_WORKING_WIDTH,
+        downsampleRatio: CONFIG.LOCAL?.RVM_DOWNSAMPLE,
+      }))
+      .catch(() => { /* prewarm is best-effort */ });
   }
 }
 
@@ -191,6 +271,7 @@ async function startAutoRecord() {
 
 function init() {
   ui.renderScenarios(state.scenarioId, applyScenario);
+  ui.renderEngineToggle(state.engine, setEngine);
   ui.setLive(false, CONFIG.SHOW_SIMULATED_BADGE);
   usage.init();
 
