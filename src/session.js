@@ -31,9 +31,11 @@ export async function fetchCredential() {
  * Guardrail timers around a live session. Call `bump()` on any operator action
  * to defer the idle timeout. Call `stop()` when the session ends.
  */
-export function createGuards({ onIdleTimeout, onMaxReached, onTick }) {
-  const maxMs = (CONFIG.MAX_SESSION_SECONDS || 0) * 1000;
-  const idleMs = (CONFIG.IDLE_TIMEOUT_SECONDS || 0) * 1000;
+export function createGuards({ onIdleTimeout, onMaxReached, onTick, maxSeconds, idleSeconds } = {}) {
+  // Callers can override the CONFIG caps (e.g. the offline engine has no
+  // per-second cost, so it runs with maxSeconds: 0 = unlimited).
+  const maxMs = (maxSeconds ?? CONFIG.MAX_SESSION_SECONDS ?? 0) * 1000;
+  const idleMs = (idleSeconds ?? CONFIG.IDLE_TIMEOUT_SECONDS ?? 0) * 1000;
 
   let startedAt = 0;
   let idleTimer = null;

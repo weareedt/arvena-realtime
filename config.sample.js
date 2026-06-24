@@ -20,6 +20,33 @@ export const CONFIG = {
   // Which scenario loads when the operator goes live.
   DEFAULT_SCENARIO: "flood",
 
+  // Which engine runs by default:
+  //   "decart" → live AI restyle (per-second cost, capped by MAX_SESSION_SECONDS)
+  //   "local"  → offline background segmentation (free, runs entirely in-browser)
+  // The operator can switch engines in the UI while idle.
+  DEFAULT_ENGINE: "decart",
+
+  // Offline (local segmentation) engine. No per-second cost, so MAX_SESSION_SECONDS
+  // here can be 0 (unlimited). WIDTH/HEIGHT/FPS drive the local camera capture.
+  LOCAL: {
+    WIDTH: 1280,
+    HEIGHT: 720,
+    FPS: 30,
+    MAX_SESSION_SECONDS: 0,
+    // Matting engine: "rvm" (Robust Video Matting via TensorFlow.js/WebGL — soft
+    // edges + temporal coherence, best quality) | "mediapipe" (GPU fallback).
+    // RVM auto-falls back to MediaPipe if WebGL is unavailable.
+    SEG_ENGINE: "rvm",
+    // RVM inference resolution (long side, px). Lower = faster, higher = sharper.
+    RVM_WORKING_WIDTH: 512,
+    // RVM internal downsample ratio (0.25–1). Higher = sharper matte (less jagged),
+    // more GPU cost. 1.0 = full working-res matte.
+    RVM_DOWNSAMPLE: 1.0,
+    // Edge feather in px. RVM's matte is already soft (0 ideal). undefined lets
+    // the engine pick (0 for RVM, a touch for MediaPipe).
+    EDGE_FEATHER_PX: undefined,
+  },
+
   // Cost & responsible-use guardrails (plan §8). Tune freely.
   // Hard ceiling on a single live session, in seconds. 0 disables.
   MAX_SESSION_SECONDS: 20,
