@@ -18,8 +18,8 @@ export const CONFIG = {
   // Offline (local segmentation) engine settings. No per-second cost, so no
   // tight time cap — set LOCAL.MAX_SESSION_SECONDS to 0 for unlimited.
   LOCAL: {
-    WIDTH: 1280,
-    HEIGHT: 720,
+    WIDTH: 1920,
+    HEIGHT: 1080,
     FPS: 30,
     MAX_SESSION_SECONDS: 0,
     // Matting engine: "rvm" (Robust Video Matting via TensorFlow.js/WebGL — soft

@@ -30,6 +30,12 @@ const TASKS_VERSION = "0.10.18";
 const TASKS_CDN = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VERSION}`;
 const DEFAULT_RVM_MODEL = "assets/models/rvm-tfjs/model.json";
 
+// Alpha-matte edge choke (0–1): RVM alpha below this is forced to 0 and the
+// remaining range is rescaled to 0..1. This trims the faint translucent rim that
+// otherwise bleeds the real background through as a light halo. Higher = tighter
+// edge / less halo but eats fine hair; ~0.1–0.2 is a good range.
+const ALPHA_EDGE_LO = 0.12;
+
 export function isSupported() {
   return !!(navigator.mediaDevices?.getUserMedia && HTMLCanvasElement.prototype.captureStream);
 }
@@ -85,7 +91,7 @@ async function warmupRvm(tf, model, workingWidth, downsample) {
   const t0 = performance.now();
   const outs = await model.executeAsync(
     { src, r1i: r1, r2i: r2, r3i: r3, r4i: r4, downsample_ratio: downsample },
-    ["fgr", "pha", "r1o", "r2o", "r3o", "r4o"],
+    ["pha", "r1o", "r2o", "r3o", "r4o"],
   );
   await outs[0].data(); // block until the GPU work (and shader compile) is done
   console.info("[ARVENA] RVM warm-up (shader compile):", Math.round(performance.now() - t0), "ms");
@@ -118,6 +124,10 @@ async function createRvmMatter({ modelUrl, workingWidth, downsampleRatio }) {
   const wctx = work.getContext("2d", { willReadFrequently: true });
   const matte = document.createElement("canvas");
   const mctx = matte.getContext("2d");
+  // Full-res snapshot of the exact frame the matte is computed from, so the
+  // person RGB and the matte stay time-aligned (no trailing edge on fast motion).
+  const frame = document.createElement("canvas");
+  const fctx = frame.getContext("2d");
   let ww = 0, wh = 0;
   function sizeFor(video) {
     const vw = video.videoWidth, vh = video.videoHeight;
@@ -134,35 +144,54 @@ async function createRvmMatter({ modelUrl, workingWidth, downsampleRatio }) {
   return {
     async toPersonCanvas(video, personCanvas, pctx, feather) {
       sizeFor(video);
-      wctx.drawImage(video, 0, 0, ww, wh);
+      const pw = personCanvas.width, ph = personCanvas.height;
+      wctx.drawImage(video, 0, 0, ww, wh);          // low-res copy for inference
+      // Snapshot the SAME instant at full res; we composite against this (not the
+      // live video) so the matte can't drift ahead of the RGB during fast motion.
+      if (frame.width !== pw || frame.height !== ph) { frame.width = pw; frame.height = ph; }
+      fctx.drawImage(video, 0, 0, pw, ph);
 
       const src = tf.tidy(() => tf.browser.fromPixels(work).expandDims(0).div(255));
-      const [fgr, pha, r1o, r2o, r3o, r4o] = await model.executeAsync(
+      // Only the alpha matte (pha) comes from the model — the person's RGB is
+      // taken from the full-res snapshot below, so the presenter stays sharp
+      // instead of being upscaled from the low working resolution.
+      const [pha, r1o, r2o, r3o, r4o] = await model.executeAsync(
         { src, r1i, r2i, r3i, r4i, downsample_ratio: downsample },
-        ["fgr", "pha", "r1o", "r2o", "r3o", "r4o"],
+        ["pha", "r1o", "r2o", "r3o", "r4o"],
       );
 
-      // fgr (decontaminated foreground RGB) + pha (alpha) → RGBA ImageData
+      // pha (alpha) → white-RGB + alpha ImageData (a matte stencil only).
+      // Choke the faint outer edge band: remap alpha so values below EDGE_LO go
+      // to 0. That low-alpha band is where the real background bleeds through as
+      // a light halo; dropping it removes the fringe while keeping hair detail
+      // (the steeper gradient above EDGE_LO is preserved).
       const rgba = tf.tidy(() => {
-        const rgb = fgr.squeeze(0).mul(255).cast("int32");
-        const a = pha.squeeze(0).mul(255).cast("int32");
-        return tf.concat([rgb, a], -1);
+        const a0 = pha.squeeze(0);                              // [h,w,1] 0..1
+        const a = a0.sub(ALPHA_EDGE_LO).div(1 - ALPHA_EDGE_LO).clipByValue(0, 1);
+        const aI = a.mul(255).cast("int32");
+        const rgb = tf.fill([aI.shape[0], aI.shape[1], 3], 255, "int32");
+        return tf.concat([rgb, aI], -1);
       });
       const [hh, wwx] = rgba.shape;
       const pixelData = new Uint8ClampedArray(await rgba.data());
       mctx.putImageData(new ImageData(pixelData, wwx, hh), 0, 0);
 
-      // scale matte up into the full-size person canvas (tiny optional feather)
+      // Scale the soft matte up, then paint the time-aligned full-res snapshot
+      // through it (source-in) so the presenter keeps native webcam resolution.
       pctx.save();
-      pctx.clearRect(0, 0, personCanvas.width, personCanvas.height);
+      pctx.clearRect(0, 0, pw, ph);
       pctx.filter = feather > 0 ? `blur(${feather}px)` : "none";
       pctx.imageSmoothingEnabled = true;
       pctx.imageSmoothingQuality = "high";
-      pctx.drawImage(matte, 0, 0, personCanvas.width, personCanvas.height);
+      pctx.drawImage(matte, 0, 0, pw, ph);
+      pctx.filter = "none";
+      pctx.globalCompositeOperation = "source-in";
+      pctx.drawImage(frame, 0, 0, pw, ph);
       pctx.restore();
+      pctx.globalCompositeOperation = "source-over";
 
       // free this frame's tensors; recycle recurrent state for the next frame
-      tf.dispose([src, fgr, pha, rgba, r1i, r2i, r3i, r4i]);
+      tf.dispose([src, pha, rgba, r1i, r2i, r3i, r4i]);
       r1i = r1o; r2i = r2o; r3i = r3o; r4i = r4o;
     },
     close() {
@@ -283,7 +312,12 @@ export async function startSegmentation(opts) {
   let camStream;
   try {
     camStream = await navigator.mediaDevices.getUserMedia({
-      video: { width, height, frameRate: fps, facingMode: "user" },
+      // `ideal` (not exact) so the browser hands back the camera's best mode at
+      // or near this size instead of failing on webcams that can't hit it.
+      video: {
+        width: { ideal: width }, height: { ideal: height },
+        frameRate: { ideal: fps }, facingMode: "user",
+      },
       audio: false,
     });
   } catch (err) {
@@ -307,9 +341,10 @@ export async function startSegmentation(opts) {
   canvas.height = h;
   const ctx = canvas.getContext("2d");
 
-  // RVM's matte is soft but is upscaled from the working res — a 1px feather
-  // smooths the occasional stair-step without making it mushy. MediaPipe wants a touch more.
-  const feather = opts.feather ?? (engine === "rvm" ? 1 : Math.max(1, Math.round(h * 0.004)));
+  // RVM's matte is already soft; the alpha choke (ALPHA_EDGE_LO) handles the
+  // edge, so no feather by default (feather would re-widen the translucent rim
+  // and bring the halo back). MediaPipe's hard mask still wants a touch.
+  const feather = opts.feather ?? (engine === "rvm" ? 0 : Math.max(1, Math.round(h * 0.004)));
 
   const personCanvas = document.createElement("canvas");
   personCanvas.width = w;

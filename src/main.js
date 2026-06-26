@@ -127,6 +127,7 @@ async function goLiveLocal() {
   stopPreview(); // free the camera for the segmentation capture
 
   const scenario = getScenario(state.scenarioId);
+  ui.setLoading(true, "LOADING SEGMENTATION MODEL");
   try {
     // Lazy-load the segmentation engine so its CDN deps can never break app boot.
     const { startSegmentation } = await import("./segment.js");
@@ -142,6 +143,7 @@ async function goLiveLocal() {
       onLocalStream: ui.showLocalStream,
       onError: (err) => ui.setStatus("Error: " + (err?.message || err), "error"),
     });
+    ui.setLoading(false);
     ui.showRemoteStream(state.local.stream);
 
     state.status = "live";
@@ -158,6 +160,7 @@ async function goLiveLocal() {
     });
     state.guards.start();
   } catch (err) {
+    ui.setLoading(false);
     ui.setStatus(err?.message || String(err), "error");
     teardown();
   }
@@ -267,6 +270,23 @@ async function startAutoRecord() {
   }
 }
 
+// ---- fullscreen -------------------------------------------------------------
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.();
+  } else {
+    document.documentElement.requestFullscreen?.().catch((err) => {
+      ui.setStatus("Fullscreen unavailable: " + (err?.message || err), "error");
+    });
+  }
+}
+
+function syncFullscreenLabel() {
+  if (!ui.els.fullscreenBtn) return;
+  ui.els.fullscreenBtn.textContent = document.fullscreenElement ? "⛶ EXIT FULL" : "⛶ FULLSCREEN";
+}
+
 // ---- boot -------------------------------------------------------------------
 
 function init() {
@@ -278,6 +298,8 @@ function init() {
   ui.els.goLive.addEventListener("click", goLive);
   ui.els.endSession.addEventListener("click", () => endSession("Session ended"));
   ui.els.devToggle.addEventListener("click", usage.toggle);
+  ui.els.fullscreenBtn?.addEventListener("click", toggleFullscreen);
+  document.addEventListener("fullscreenchange", syncFullscreenLabel);
   ui.els.pipPlaceholder.addEventListener("click", startPreview);
 
   // End the session cleanly if the tab closes (stop burning generated seconds).

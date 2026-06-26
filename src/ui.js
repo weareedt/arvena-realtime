@@ -17,7 +17,17 @@ export const els = {
   endSession: document.getElementById("end-session"),
   statusLine: document.getElementById("status-line"),
   devToggle: document.getElementById("dev-toggle"),
+  fullscreenBtn: document.getElementById("fullscreen-btn"),
+  loadingOverlay: document.getElementById("loading-overlay"),
+  loadingText: document.querySelector("#loading-overlay .loading-text"),
 };
+
+/** Full-screen darken + spinner shown while a heavy model loads. */
+export function setLoading(visible, text) {
+  if (!els.loadingOverlay) return;
+  if (text && els.loadingText) els.loadingText.textContent = text;
+  els.loadingOverlay.hidden = !visible;
+}
 
 /** Render scenario chips from the catalog. */
 export function renderScenarios(activeId, onPick) {

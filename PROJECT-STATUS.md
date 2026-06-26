@@ -17,9 +17,9 @@ for the original product/brand spec.
 
 ## How it works now (one-click flow)
 
-1. Page loads showing the raw webcam live in a single near-fullscreen **ARVENA.OUT** panel
-   (titled **SIMULATION VIEW**), with a small **CAMERA.IN** picture-in-picture inset
-   bottom-center.
+1. Page loads with the **SIMULATION VIEW** filling the entire viewport as the backdrop;
+   all UI (title, engine toggle, START/STOP, scenario chips, status, footer) is overlaid
+   on top of it, with a small **CAMERA.IN** picture-in-picture inset bottom-right.
 2. Operator clicks **START →**.
 3. App fetches a credential from `api/session.mjs` and connects the webcam to Decart; the
    big panel swaps from raw camera to the Decart-edited feed once frames arrive, and the

@@ -29,39 +29,99 @@
 }
 
 html, body {
-  /* EDT background: pure black + faint pixel grid */
+  /* Plain black — the fullscreen simulation view is the only backdrop. */
   background-color: var(--edt-black);
-  background-image:
-    linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
-  background-size: 28px 28px;
   color: var(--edt-white);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  height: 100%;
+  overflow: hidden;
 }
 
 .accent { color: var(--edt-blue); }
 .muted  { color: var(--edt-grey); }
 
 /* ============================================================
-   Stage layout — centered single-preview screen
+   Fullscreen simulation view — the video fills the viewport and
+   acts as the page backdrop; all UI is overlaid on top of it.
    ============================================================ */
-.stage {
-  height: 100vh;
+.sim-view {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: #000;
+  overflow: hidden;
+}
+.sim-view > video {
   width: 100%;
-  margin: 0;
-  padding: 12px 16px 10px;
+  height: 100%;
+  /* contain = show the whole frame (no crop / no false zoom); any leftover space
+     letterboxes against the black backdrop. Use `cover` instead if you'd rather
+     fill the window edge-to-edge and accept cropping on non-16:9 windows. */
+  object-fit: contain;
+  display: block;
+}
+
+/* ---- Overlay layer: floats above the simulation ---- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
+  justify-content: space-between;
+  padding: 16px 20px;
+  /* Let the simulation show through gaps; re-enable events on real controls. */
+  pointer-events: none;
 }
+.overlay-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -16px -20px 0;       /* bleed the scrim to the edges */
+  padding: 16px 20px 28px;
+  background: linear-gradient(to bottom, rgba(10,10,10,0.7), transparent);
+}
+.brand { text-shadow: 0 1px 8px rgba(0,0,0,0.6); }
+.overlay-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 0 -20px -16px;       /* bleed the scrim to the edges */
+  padding: 28px 20px 16px;
+  background: linear-gradient(to top, rgba(10,10,10,0.75), transparent);
+}
+.overlay-top-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+/* Interactive overlay groups capture clicks; the rest pass through. */
+.overlay-top-right,
+.pip,
+.overlay-bottom { pointer-events: auto; }
+
+/* Fullscreen toggle */
+.fs-btn {
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--edt-white);
+  background: rgba(10, 10, 10, 0.55);
+  border: var(--border);
+  padding: 9px 13px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.fs-btn:hover { background: var(--edt-white); color: var(--edt-black); }
+
 .eyebrow {
   font: 600 11px/1 var(--font-body);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--edt-blue);
-  text-align: center;
 }
 .stage-title {
   font-family: var(--font-display);
@@ -70,21 +130,7 @@ html, body {
   line-height: 1;
   letter-spacing: -0.03em;
   text-transform: uppercase;
-  text-align: center;
-}
-
-/* Big output fills the remaining vertical space (almost fullscreen). */
-.preview-panel {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.preview-panel .video-wrap {
-  flex: 1 1 auto;
-  min-height: 0;
-  aspect-ratio: auto;
+  margin-top: 4px;
 }
 
 .stage-actions {
@@ -96,6 +142,40 @@ html, body {
 .stage-scenarios { justify-content: center; }
 
 .status-line { text-align: center; }
+
+/* ============================================================
+   Loading overlay — darken the screen while the segmentation
+   model loads, with a spinner + label centered.
+   ============================================================ */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;                 /* above the UI overlay (1) and PiP (2) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: rgba(10, 10, 10, 0.82);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.loading-overlay[hidden] { display: none; }
+.spinner {
+  width: 56px;
+  height: 56px;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--edt-blue);
+  border-radius: 50% !important;   /* override the global sharp-corner reset */
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text {
+  font: 600 13px/1 var(--font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--edt-white);
+}
 
 /* ============================================================
    Window-chrome panel
@@ -153,18 +233,17 @@ html, body {
   display: block;
 }
 
-/* ---- Picture-in-picture: raw camera inset over the Decart output ---- */
+/* ---- Picture-in-picture: raw camera inset, floated over the simulation ---- */
 .pip {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 22%;
-  min-width: 150px;
-  max-width: 260px;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 18%;
+  min-width: 140px;
+  max-width: 240px;
   border: var(--border);
   background: var(--edt-black);
-  z-index: 3;
+  z-index: 2;
 }
 .pip-titlebar {
   height: 20px;
@@ -221,11 +300,12 @@ html, body {
   font-size: 11px;
 }
 
-/* SIMULATED disclosure badge — on-brand panel block (plan §10/§13.6) */
+/* SIMULATED disclosure badge — top-left, under the title (clear of the footer) */
 .simulated-badge {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
+  position: fixed;
+  left: 20px;
+  top: 92px;
+  z-index: 3;
   padding: 6px 10px;
   background: rgba(10, 10, 10, 0.78);
   border: var(--border);
@@ -233,6 +313,7 @@ html, body {
   letter-spacing: 0.1em;
   color: var(--edt-white);
   user-select: none;
+  pointer-events: none;
 }
 
 /* ============================================================
@@ -394,7 +475,7 @@ html, body {
    ============================================================ */
 .dev-usage {
   position: fixed;
-  right: 16px;
+  left: 16px;
   bottom: 16px;
   width: 240px;
   z-index: 50;
