@@ -60,8 +60,9 @@ function stopPreview() {
 
 async function goLive() {
   if (state.status !== "idle") return;
-  if (state.engine === "local") return goLiveLocal();
-  return goLiveDecart();
+  // Offline is the only engine surfaced in the UI now. (goLiveDecart is retained
+  // for future re-enablement but is no longer reachable from the controls.)
+  return goLiveLocal();
 }
 
 async function goLiveDecart() {
@@ -205,27 +206,16 @@ async function applyScenario(id) {
   }
 }
 
-// Switch engine (idle only — the toggle is locked while live).
-function setEngine(engine) {
-  if (state.status !== "idle" || engine === state.engine) return;
-  state.engine = engine;
-  ui.setActiveEngine(engine);
-  ui.setStatus(
-    engine === "local"
-      ? "Offline engine — free, no time cap. Press START"
-      : "Live AI engine — Decart restyle. Press START",
-    "ok",
-  );
-  // Warm up the offline matting model in the background so START is instant
-  // (downloads + compiles WebGL shaders while the operator picks a scenario).
-  if (engine === "local" && (CONFIG.LOCAL?.SEG_ENGINE ?? "rvm") === "rvm") {
-    import("./segment.js")
-      .then((m) => m.prewarm({
-        workingWidth: CONFIG.LOCAL?.RVM_WORKING_WIDTH,
-        downsampleRatio: CONFIG.LOCAL?.RVM_DOWNSAMPLE,
-      }))
-      .catch(() => { /* prewarm is best-effort */ });
-  }
+// Warm up the offline matting model at boot so the first START is instant
+// (downloads the model + compiles WebGL shaders while the operator gets ready).
+function prewarmOffline() {
+  if ((CONFIG.LOCAL?.SEG_ENGINE ?? "rvm") !== "rvm") return;
+  import("./segment.js")
+    .then((m) => m.prewarm({
+      workingWidth: CONFIG.LOCAL?.RVM_WORKING_WIDTH,
+      downsampleRatio: CONFIG.LOCAL?.RVM_DOWNSAMPLE,
+    }))
+    .catch(() => { /* prewarm is best-effort */ });
 }
 
 // ---- recording --------------------------------------------------------------
@@ -291,9 +281,9 @@ function syncFullscreenLabel() {
 
 function init() {
   ui.renderScenarios(state.scenarioId, applyScenario);
-  ui.renderEngineToggle(state.engine, setEngine);
   ui.setLive(false, CONFIG.SHOW_SIMULATED_BADGE);
   usage.init();
+  prewarmOffline(); // auto-load the offline model from start
 
   ui.els.goLive.addEventListener("click", goLive);
   ui.els.endSession.addEventListener("click", () => endSession("Session ended"));

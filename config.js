@@ -11,9 +11,10 @@ export const CONFIG = {
 
   DEFAULT_SCENARIO: "flood",
 
-  // Engine: "decart" = live AI restyle (per-second cost) | "local" = offline
-  // background segmentation (free, runs in-browser). See src/segment.js.
-  DEFAULT_ENGINE: "decart",
+  // Engine: "local" = offline background segmentation (free, runs in-browser,
+  // the only engine in the UI) | "decart" = live AI restyle (per-second cost;
+  // code retained but no longer surfaced as a toggle). See src/segment.js.
+  DEFAULT_ENGINE: "local",
 
   // Offline (local segmentation) engine settings. No per-second cost, so no
   // tight time cap — set LOCAL.MAX_SESSION_SECONDS to 0 for unlimited.
