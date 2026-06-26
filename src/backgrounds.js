@@ -12,9 +12,10 @@
 
 // ---- media-backed background (optional bgVideo / bgImage on a scenario) ------
 
-function mediaBackground(src, isVideo) {
+function mediaBackground(src, isVideo, fallback) {
   let el;
   let ready = false;
+  let failed = false;   // file missing / decode error → use the procedural fallback
   if (isVideo) {
     el = document.createElement("video");
     el.src = src;
@@ -22,15 +23,23 @@ function mediaBackground(src, isVideo) {
     el.muted = true;
     el.playsInline = true;
     el.addEventListener("canplay", () => { ready = true; el.play().catch(() => {}); });
+    el.addEventListener("error", () => { failed = true; });
   } else {
     el = new Image();
     el.crossOrigin = "anonymous";
     el.onload = () => { ready = true; };
+    el.onerror = () => { failed = true; };
     el.src = src;
   }
   return {
-    draw(ctx, w, h) {
-      if (!ready) { ctx.fillStyle = "#0A0A0A"; ctx.fillRect(0, 0, w, h); return; }
+    draw(ctx, w, h, t) {
+      // Until the media is ready (or if it failed to load), draw the procedural
+      // painter so the scene is never blank while you stage a clip.
+      if (!ready || failed) {
+        if (fallback) fallback(ctx, w, h, t);
+        else { ctx.fillStyle = "#0A0A0A"; ctx.fillRect(0, 0, w, h); }
+        return;
+      }
       // cover-fit
       const mw = el.videoWidth || el.naturalWidth || w;
       const mh = el.videoHeight || el.naturalHeight || h;
@@ -203,8 +212,10 @@ const PAINTERS = { flood, wildfire, storm, studio };
  * @returns {{ draw(ctx,w,h,t):void, stop?():void }}
  */
 export function createBackground(scenario) {
-  if (scenario?.bgVideo) return mediaBackground(scenario.bgVideo, true);
-  if (scenario?.bgImage) return mediaBackground(scenario.bgImage, false);
+  // The procedural painter doubles as the fallback for media-backed scenarios
+  // (shown while a clip loads, or permanently if the file is missing).
   const painter = (PAINTERS[scenario?.id] || studio)();
+  if (scenario?.bgVideo) return mediaBackground(scenario.bgVideo, true, painter);
+  if (scenario?.bgImage) return mediaBackground(scenario.bgImage, false, painter);
   return { draw: painter };
 }

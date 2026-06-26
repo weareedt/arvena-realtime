@@ -21,6 +21,10 @@ export const SCENARIOS = [
     label: "Flood",
     mode: "restyle",
     enhance: true,
+    // OFFLINE engine: if this looping clip exists it's used as the backplate;
+    // otherwise it falls back to the procedural flood painter (backgrounds.js).
+    // Drop a 1080p MP4 (H.264, no audio, seamless loop) at this path to enable it.
+    bgVideo: "assets/backgrounds/flood-loop.mp4",
     prompt:
       "Heavy urban flood news scene: brown turbid floodwater up to knee height across " +
       "the ground, heavy rain, overcast storm sky, half-submerged cars and floating " +
