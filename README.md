@@ -168,7 +168,7 @@ src/
   decart.js           @decartai/sdk wrapper (start / setPrompt / stop)
   segment.js          OFFLINE engine: RVM matting (TF.js/WebGL) + MediaPipe fallback
   backgrounds.js      procedural scenario backplates for the offline engine
-  scenarios.js        prompt catalog (Flood / Wildfire / Storm / Studio)
+  scenarios.js        prompt catalog (Flood / Stadium Pitch / Festival / Mountain)
   recorder.js         canvas-composite recording (burned-in badge + mic)
   mp4.js              in-browser WebM→MP4 via ffmpeg.wasm (lazy-loaded)
   session.js          credential fetch + idle/time-cap guardrails

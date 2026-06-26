@@ -77,7 +77,7 @@ src/decart.js     @decartai/sdk wrapper (connect / setPrompt / stop)
 src/segment.js    OFFLINE engine: RVM matting (TensorFlow.js/WebGL, default) w/ MediaPipe ImageSegmenter fallback → canvas MediaStream (free)
 assets/models/rvm-tfjs/  RVM TF.js graph model (model.json + ~3.7MB shard), served same-origin
 src/backgrounds.js procedural scenario backplates for the offline engine (+ optional bgVideo/bgImage)
-src/scenarios.js  prompt catalog (Flood/Wildfire/Storm/Studio) — all restyle mode
+src/scenarios.js  prompt catalog (Flood/Stadium Pitch/Festival/Mountain) — all restyle mode
 src/recorder.js   canvas-composite recording (burned-in disclosure + mic)
 src/mp4.js        in-browser WebM→MP4 via ffmpeg.wasm (lazy-loaded)
 src/session.js    credential fetch + idle/time-cap guards

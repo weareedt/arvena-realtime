@@ -5,9 +5,11 @@
 //   • concrete about placement + scale ("knee-height", "background only")
 //   • every prompt PINS the presenter ("keep the presenter sharp and
 //     photorealistic, unchanged") so the edit happens AROUND them
-//   • "studio" is the panic/reset button → instant neutral via setPrompt()
 //
-// `mode` selects which model the scenario wants:
+// Each scenario id also maps to a procedural backplate in backgrounds.js (used
+// by the offline engine) and may carry an optional bgVideo/bgImage.
+//
+// `mode` selects which model the scenario wants (Decart path, currently unused):
 //   "edit"    → lucy-2.1      (photoreal, edits around the real person)
 //   "restyle" → lucy-restyle-2 (full-frame stylization)
 
@@ -31,34 +33,33 @@ export const SCENARIOS = [
       "debris in the background, sandbags along a wall. " + KEEP_PRESENTER,
   },
   {
-    id: "wildfire",
-    label: "Wildfire",
+    id: "stadium",
+    label: "Stadium Pitch",
     mode: "restyle",
     enhance: true,
     prompt:
-      "Wildfire evacuation scene: thick orange smoke haze, glowing embers drifting in " +
-      "the air, distant flames and burnt trees, flashing emergency-vehicle lights in the " +
-      "background, hazy low-visibility daylight. " + KEEP_PRESENTER,
+      "Inside a packed football stadium at night: floodlit green pitch with painted " +
+      "side lines, tiered stands full of cheering fans, bright stadium floodlights and a " +
+      "glowing scoreboard in the background. " + KEEP_PRESENTER,
   },
   {
-    id: "storm",
-    label: "Storm",
+    id: "festival",
+    label: "Festival",
     mode: "restyle",
     enhance: true,
     prompt:
-      "Hurricane / severe storm scene: violent wind bending palm trees, sideways rain, " +
-      "dark churning sky with lightning, flying debris and torn signage in the " +
-      "background, wet reflective pavement. " + KEEP_PRESENTER,
+      "Outdoor night music festival: large illuminated main stage, sweeping coloured " +
+      "spotlights and laser beams, dense crowd silhouettes with raised hands, confetti " +
+      "in the air, deep dusk sky. " + KEEP_PRESENTER,
   },
   {
-    id: "studio",
-    label: "Studio (reset)",
+    id: "mountain",
+    label: "Mountain",
     mode: "restyle",
-    enhance: false,
-    // Panic button: returns the presenter to a clean, neutral broadcast set.
+    enhance: true,
     prompt:
-      "Clean neutral broadcast news studio: plain dark grey seamless background, even " +
-      "soft studio lighting, no weather, no debris, no effects. " + KEEP_PRESENTER,
+      "High alpine mountain landscape: layered snow-capped peaks, clear blue sky with " +
+      "drifting clouds, bright sun and crisp daylight, distant ridgelines. " + KEEP_PRESENTER,
   },
 ];
 
