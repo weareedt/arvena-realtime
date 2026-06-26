@@ -1,6 +1,6 @@
 # ARVENA — Project Status
 
-_Last updated: 2026-06-24_
+_Last updated: 2026-06-26_
 
 Current state of the ARVENA Realtime Scenario Generator. See [README.md](README.md) for
 setup/run details and [decart-realtime-scenario-plan.md](decart-realtime-scenario-plan.md)
@@ -17,45 +17,53 @@ for the original product/brand spec.
 
 ## How it works now (one-click flow)
 
-1. Page loads with the **SIMULATION VIEW** filling the entire viewport as the backdrop;
-   all UI (title, engine toggle, START/STOP, scenario chips, status, footer) is overlaid
-   on top of it, with a small **CAMERA.IN** picture-in-picture inset bottom-right.
-2. Operator clicks **START →**.
-3. App fetches a credential from `api/session.mjs` and connects the webcam to Decart; the
-   big panel swaps from raw camera to the Decart-edited feed once frames arrive, and the
-   raw feed continues in the bottom-center PiP.
-4. On the first edited frame, **recording auto-starts** (mic audio + burned-in
+**The OFFLINE engine is the only engine** — the Live AI / Offline toggle was removed.
+`DEFAULT_ENGINE = "local"` and START always runs the in-browser matting path. (The
+Decart code — `src/decart.js`, `goLiveDecart`, `api/session.mjs` — is retained but no
+longer reachable from the UI.)
+
+1. Page loads with the **SIMULATION VIEW** filling the entire viewport as the backdrop
+   (`object-fit: contain`); all UI is overlaid on top — title, **⛶ FULLSCREEN** button +
+   `● ON AIR` (top-right), `SIMULATED — AI GENERATED` badge (top-left), START/STOP +
+   scenario chips + status + footer (bottom-center), and a **CAMERA.IN** raw-camera PiP
+   (bottom-right). The RVM model **prewarms at boot** so the first START is instant.
+2. Operator clicks **START →**. A darken + spinner **"LOADING SEGMENTATION MODEL"**
+   overlay covers the screen until the model is ready (brief, since it's prewarmed).
+3. The webcam is captured locally; RVM produces a soft alpha matte, the presenter is
+   composited (full-res, fit-centered) over the scenario background, and the result
+   streams to the big panel.
+4. On the first composited frame, **recording auto-starts** (mic audio + burned-in
    `SIMULATED — AI GENERATED` label composited onto a canvas).
-5. Session runs a **~20s hard cap** (`MAX_SESSION_SECONDS = 20`).
-6. On cap (or **STOP**), it **auto-stops, transcodes WebM→MP4 (ffmpeg.wasm), downloads**,
-   and ends the session (big panel reverts to raw camera).
+5. **No time cap** offline (`LOCAL.MAX_SESSION_SECONDS = 0`).
+6. On **STOP**, it **auto-stops, transcodes WebM→MP4 (ffmpeg.wasm), downloads**, and
+   ends the session (big panel reverts to raw camera).
 
-### Engines (cost control)
+### Offline engine (free, on-device)
 
-Two engines, switchable via the toggle while idle (`DEFAULT_ENGINE` in `config.js`):
+In-browser **RVM** (Robust Video Matting via TensorFlow.js/WebGL) cuts out the presenter
+and composites them over a **scenario background** (`src/backgrounds.js`). Runs entirely
+on-device → **no Decart calls, no per-second bill, no time cap**. Auto-falls back to
+MediaPipe `ImageSegmenter` if WebGL/TF.js can't load (`LOCAL.SEG_ENGINE`,
+`RVM_WORKING_WIDTH`, `RVM_DOWNSAMPLE`). NOTE: onnxruntime-web was tried first and
+rejected — its WebGPU EP silently ran unsupported ops on the CPU/main thread and froze
+the tab; TF.js WebGL keeps compute on the GPU.
 
-- **LIVE AI** (`decart`) — Decart `lucy-restyle-2` full-frame restyle. Per-second
-  cost; governed by the 20s `MAX_SESSION_SECONDS` cap.
-- **OFFLINE · FREE** (`local`) — in-browser **MediaPipe Selfie Segmentation** cuts
-  out the presenter and composites them over a **procedural scenario background**
-  (`src/backgrounds.js`). Runs entirely on-device → **no Decart calls, no
-  per-second bill, no tight time cap** (`LOCAL.MAX_SESSION_SECONDS = 0`).
-  Matting engine = **RVM** (Robust Video Matting via TensorFlow.js/WebGL) for soft
-  hair-level edges + temporal coherence; auto-falls back to MediaPipe
-  ImageSegmenter if WebGL/TF.js can't load (`LOCAL.SEG_ENGINE`,
-  `LOCAL.RVM_WORKING_WIDTH`, `LOCAL.RVM_DOWNSAMPLE`). NOTE: onnxruntime-web was
-  tried first and rejected — its WebGPU EP silently ran unsupported ops on the
-  CPU/main thread and froze the tab. TF.js WebGL keeps compute on the GPU.
-  Tradeoff:
-  the presenter is composited, not neurally restyled, so it reads more like a
-  virtual set than a fully AI-generated frame. Backgrounds are procedural by
-  default; drop in `bgVideo`/`bgImage` on a scenario to use a pre-rendered loop
-  (render one per scenario with Decart once, reuse forever).
+Quality details:
+- Matte gives only the **alpha**; the presenter's RGB is the **full-res webcam** painted
+  through it (sharp, not upscaled from the working res).
+- A **full-res snapshot** is grabbed the same instant the matte is computed, so the
+  cutout doesn't trail on fast motion.
+- `ALPHA_EDGE_LO` (segment.js const) **chokes the low-alpha rim** to remove the
+  background-spill halo.
+- Output canvas is a fixed **16:9** (1920×1080); the background is **full-bleed** and the
+  presenter is **fit-centered** at the camera's native aspect → no black bars, no stretch.
 
-- Default model: **`lucy-restyle-2`** (restyle). Edit/Lucy-2.1 mode button removed.
+Tradeoff: the presenter is composited, not neurally restyled — reads like a virtual set,
+not a fully AI-generated frame.
+
 - Record button removed (recording is automatic). `● ON AIR` marks the live/recording state.
-- Dev usage meter: footer **USAGE METER** toggle (or `?dev=1`); shows generated seconds +
-  estimated cost (`PRICE_PER_SECOND_USD` in `config.js`). Local estimate only.
+- Dev usage meter: footer **USAGE METER** toggle (or `?dev=1`). Local estimate only;
+  always 0 offline.
 
 ## Architecture / security
 
@@ -85,26 +93,23 @@ src/usage.js      dev usage meter (footer toggle)
 src/ui.js         DOM helpers
 ```
 
-## In progress / needs verification
+## Scenarios
 
-- **OFFLINE engine** (free, MediaPipe selfie segmentation) is built but **not yet
-  verified in a real browser**. `segment.js` is lazy-loaded (`await import(...)`)
-  from `goLiveLocal()` so its CDN deps can't break app boot; MediaPipe loads via an
-  injected `<script>` tag (global `SelfieSegmentation`), NOT esm.sh.
-  - Earlier bug (fixed): a top-level `import` of `segment.js` threw at load time and
-    killed the whole UI (blank toggle/chips, dead buttons). Don't reintroduce a
-    static import of segment.js.
-  - To test: serve over localhost (`npx serve -l 5000` or `python -m http.server
-    5000`), open `http://localhost:5000`, click **OFFLINE · FREE**, pick a scenario,
-    press START. No Decart key/`vercel dev` needed for the offline engine.
-  - Still to check on real hardware: MediaPipe CDN loads/initializes, mask edge
-    quality, recording/MP4 export from the composited canvas stream.
-  - Possible next steps: per-scenario `bgVideo` (pre-render one loop per scenario
-    with Decart once → photoreal backplate at one-time cost), mask edge feathering.
+Four scenarios (`src/scenarios.js`), all `restyle` mode, all **video-backed**: `flood`,
+`stadium` (Stadium Pitch), `festival`, `mountain`. Each sets `bgVideo` →
+`assets/backgrounds/<id>-loop.mp4` and **falls back to a procedural painter**
+(`src/backgrounds.js`) until the clip is present. Default scenario: `flood`.
+
+- Committed so far: `flood-loop.mp4` (1.7MB, compressed). **To add:**
+  `stadium-loop.mp4`, `festival-loop.mp4`, `mountain-loop.mp4` (1080p H.264, no audio,
+  seamless loop, compressed). See `assets/backgrounds/README.md`.
+- `segment.js` is lazy-loaded (`await import(...)`) so its CDN deps can't break app boot.
+  Don't reintroduce a static import of segment.js.
 
 ## Open items
 
-- **Rotate the Decart key** before wider launch — it was exposed in chat/screenshot
-  (user deferred). Update the Vercel env var + local `.env`, then redeploy.
+- Add the three remaining background clips (stadium/festival/mountain).
 - C2PA content credentials on exports (currently only the visible burned-in label).
+- Decart (Live AI) path is dormant; the leaked key isn't surfaced/billed while
+  offline-only — rotate only if Decart is re-enabled.
 - Auth + per-user usage/billing persistence (Phase 3) if going beyond demo.
