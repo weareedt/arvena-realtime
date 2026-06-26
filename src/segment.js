@@ -334,22 +334,35 @@ export async function startSegmentation(opts) {
   video.playsInline = true;
   await video.play();
 
-  const w = video.videoWidth || width;
-  const h = video.videoHeight || height;
+  // Camera native size (often 4:3) vs. output frame size (configured 16:9). The
+  // background fills the full output frame so it's full-bleed (no black bars on a
+  // matching display); the presenter is composited *fit* inside, preserving the
+  // camera aspect ratio so they're never stretched or cropped.
+  const camW = video.videoWidth || width;
+  const camH = video.videoHeight || height;
+  const outW = width;
+  const outH = height;
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = outW;
+  canvas.height = outH;
   const ctx = canvas.getContext("2d");
 
   // RVM's matte is already soft; the alpha choke (ALPHA_EDGE_LO) handles the
   // edge, so no feather by default (feather would re-widen the translucent rim
   // and bring the halo back). MediaPipe's hard mask still wants a touch.
-  const feather = opts.feather ?? (engine === "rvm" ? 0 : Math.max(1, Math.round(h * 0.004)));
+  const feather = opts.feather ?? (engine === "rvm" ? 0 : Math.max(1, Math.round(camH * 0.004)));
 
   const personCanvas = document.createElement("canvas");
-  personCanvas.width = w;
-  personCanvas.height = h;
+  personCanvas.width = camW;
+  personCanvas.height = camH;
   const pctx = personCanvas.getContext("2d");
+
+  // Letterbox-fit rect for the presenter inside the output frame (centered).
+  const fitScale = Math.min(outW / camW, outH / camH);
+  const fitW = Math.round(camW * fitScale);
+  const fitH = Math.round(camH * fitScale);
+  const fitX = Math.round((outW - fitW) / 2);
+  const fitY = Math.round((outH - fitH) / 2);
 
   // 2) background painter
   let bg = createBackground(getScenario(scenarioId));
@@ -382,9 +395,10 @@ export async function startSegmentation(opts) {
       try {
         await matter.toPersonCanvas(video, personCanvas, pctx, feather);
         if (!running) return;
-        ctx.clearRect(0, 0, w, h);
-        bg.draw(ctx, w, h, performance.now() - start);
-        ctx.drawImage(personCanvas, 0, 0, w, h);
+        ctx.clearRect(0, 0, outW, outH);
+        bg.draw(ctx, outW, outH, performance.now() - start);   // full-bleed background
+        ctx.drawImage(personCanvas, fitX, fitY, fitW, fitH);   // presenter, fit + centered
+
       } catch (err) { onError?.(err); }
     }
     raf = requestAnimationFrame(pump);
