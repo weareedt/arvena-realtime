@@ -37,6 +37,7 @@ export const SCENARIOS = [
     label: "Stadium Pitch",
     mode: "restyle",
     enhance: true,
+    bgVideo: "assets/backgrounds/stadium-loop.mp4",
     prompt:
       "Inside a packed football stadium at night: floodlit green pitch with painted " +
       "side lines, tiered stands full of cheering fans, bright stadium floodlights and a " +
@@ -47,6 +48,7 @@ export const SCENARIOS = [
     label: "Festival",
     mode: "restyle",
     enhance: true,
+    bgVideo: "assets/backgrounds/festival-loop.mp4",
     prompt:
       "Outdoor night music festival: large illuminated main stage, sweeping coloured " +
       "spotlights and laser beams, dense crowd silhouettes with raised hands, confetti " +
@@ -57,6 +59,7 @@ export const SCENARIOS = [
     label: "Mountain",
     mode: "restyle",
     enhance: true,
+    bgVideo: "assets/backgrounds/mountain-loop.mp4",
     prompt:
       "High alpine mountain landscape: layered snow-capped peaks, clear blue sky with " +
       "drifting clouds, bright sun and crisp daylight, distant ridgelines. " + KEEP_PRESENTER,

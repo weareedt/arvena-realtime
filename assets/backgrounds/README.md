@@ -20,8 +20,12 @@ exists.
 | Scenario | Expected file |
 | --- | --- |
 | `flood` | `flood-loop.mp4` |
+| `stadium` | `stadium-loop.mp4` |
+| `festival` | `festival-loop.mp4` |
+| `mountain` | `mountain-loop.mp4` |
 
-Add more by setting `bgVideo`/`bgImage` on the matching scenario and dropping the
+Each scenario falls back to its procedural painter until the matching file is
+present. Add more by setting `bgVideo`/`bgImage` on the scenario and dropping the
 file here.
 
 ## Tip: render a loop once with Decart
