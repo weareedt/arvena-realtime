@@ -97,6 +97,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 14px;
+  margin-left: auto;   /* stay pinned right even when the brand is hidden */
 }
 /* Interactive overlay groups capture clicks; the rest pass through. */
 .overlay-top-right,
