@@ -17,6 +17,7 @@ export const els = {
   statusLine: document.getElementById("status-line"),
   devToggle: document.getElementById("dev-toggle"),
   fullscreenBtn: document.getElementById("fullscreen-btn"),
+  uiToggle: document.getElementById("ui-toggle"),
   loadingOverlay: document.getElementById("loading-overlay"),
   loadingText: document.querySelector("#loading-overlay .loading-text"),
 };

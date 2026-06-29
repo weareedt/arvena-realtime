@@ -117,6 +117,13 @@ html, body {
 }
 .fs-btn:hover { background: var(--edt-white); color: var(--edt-black); }
 
+/* Clean-view toggle: hide the top-left text, bottom controls and camera PiP,
+   leaving just the simulation. The top-right buttons stay so it can be undone. */
+body.ui-hidden .brand,
+body.ui-hidden .overlay-bottom,
+body.ui-hidden .pip,
+body.ui-hidden #simulated-badge { display: none; }
+
 .eyebrow {
   font: 600 11px/1 var(--font-body);
   letter-spacing: 0.18em;

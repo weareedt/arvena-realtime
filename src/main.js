@@ -277,6 +277,15 @@ function syncFullscreenLabel() {
   ui.els.fullscreenBtn.textContent = document.fullscreenElement ? "⛶ EXIT FULL" : "⛶ FULLSCREEN";
 }
 
+// ---- clean-view toggle ------------------------------------------------------
+
+// Hide/show the chrome (top-left text, bottom controls, camera PiP) for a clean
+// simulation view. The top-right buttons stay so it can be toggled back; `H` too.
+function toggleUI() {
+  const hidden = document.body.classList.toggle("ui-hidden");
+  if (ui.els.uiToggle) ui.els.uiToggle.textContent = hidden ? "▣ SHOW UI" : "▢ HIDE UI";
+}
+
 // ---- boot -------------------------------------------------------------------
 
 function init() {
@@ -290,6 +299,11 @@ function init() {
   ui.els.devToggle.addEventListener("click", usage.toggle);
   ui.els.fullscreenBtn?.addEventListener("click", toggleFullscreen);
   document.addEventListener("fullscreenchange", syncFullscreenLabel);
+  ui.els.uiToggle?.addEventListener("click", toggleUI);
+  // `H` toggles the clean view (ignore when typing in a field).
+  window.addEventListener("keydown", (e) => {
+    if ((e.key === "h" || e.key === "H") && !/^(INPUT|TEXTAREA)$/.test(e.target?.tagName)) toggleUI();
+  });
   ui.els.pipPlaceholder.addEventListener("click", startPreview);
 
   // End the session cleanly if the tab closes (stop burning generated seconds).
