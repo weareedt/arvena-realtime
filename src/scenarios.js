@@ -64,6 +64,37 @@ export const SCENARIOS = [
       "High alpine mountain landscape: layered snow-capped peaks, clear blue sky with " +
       "drifting clouds, bright sun and crisp daylight, distant ridgelines. " + KEEP_PRESENTER,
   },
+
+  // ---- OFFLINE video-only scenarios -----------------------------------------
+  // The current engine composites the presenter over `bgVideo` (falling back to
+  // the matching painter in backgrounds.js). It does NOT restyle, so these carry
+  // no prompt/mode/enhance — only id, label and the backplate matter.
+  // Drop the matching MP4 in assets/backgrounds/ to replace the painter.
+  {
+    id: "klcc",
+    label: "KLCC",
+    bgVideo: "assets/backgrounds/klcc-loop.mp4",
+  },
+  {
+    id: "wartawan",
+    label: "Malam Wartawan",
+    bgVideo: "assets/backgrounds/wartawan-loop.mp4",
+  },
+  {
+    id: "concert",
+    label: "Concert",
+    bgVideo: "assets/backgrounds/concert-loop.mp4",
+  },
+  {
+    id: "piala",
+    label: "Piala Malaysia",
+    bgVideo: "assets/backgrounds/piala-loop.mp4",
+  },
+  {
+    id: "studio",
+    label: "Baca Berita",
+    bgVideo: "assets/backgrounds/studio-loop.mp4",
+  },
 ];
 
 export const DEFAULT_SCENARIO_ID = "flood";

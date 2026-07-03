@@ -17,12 +17,17 @@ exists.
 
 ## Currently wired
 
-| Scenario | Expected file |
-| --- | --- |
-| `flood` | `flood-loop.mp4` |
-| `stadium` | `stadium-loop.mp4` |
-| `festival` | `festival-loop.mp4` |
-| `mountain` | `mountain-loop.mp4` |
+| Scenario | Expected file | Painter fallback |
+| --- | --- | --- |
+| `flood` | `flood-loop.mp4` | `flood` |
+| `stadium` | `stadium-loop.mp4` | `stadium` |
+| `festival` | `festival-loop.mp4` | `festival` |
+| `mountain` | `mountain-loop.mp4` | `mountain` |
+| `klcc` | `klcc-loop.mp4` | `klcc` (KL night skyline) |
+| `wartawan` | `wartawan-loop.mp4` | `wartawan` (press gala) |
+| `concert` | `concert-loop.mp4` | reuses `festival` |
+| `piala` | `piala-loop.mp4` | reuses `stadium` |
+| `studio` | `studio-loop.mp4` | `studio` (news backdrop) |
 
 Each scenario falls back to its procedural painter until the matching file is
 present. Add more by setting `bgVideo`/`bgImage` on the scenario and dropping the

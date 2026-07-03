@@ -303,6 +303,185 @@ function mountain() {
   };
 }
 
+function klcc() {
+  let sparkle = null, towers = null;
+  return (ctx, w, h, t) => {
+    // night sky over the city
+    const sky = ctx.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, "#0a1024");
+    sky.addColorStop(0.55, "#1a2140");
+    sky.addColorStop(0.8, "#3a2f4d");
+    sky.addColorStop(1, "#4a3a2f"); // warm city glow at the horizon
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, h);
+
+    const skyline = h * 0.62;
+
+    // hazy light glow sitting on the skyline
+    const glow = ctx.createLinearGradient(0, skyline - h * 0.2, 0, skyline);
+    glow.addColorStop(0, "transparent");
+    glow.addColorStop(1, "rgba(255,190,120,0.22)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, skyline - h * 0.2, w, h * 0.2);
+
+    // background building silhouettes with lit windows (deterministic layout)
+    if (!towers) {
+      towers = [];
+      let x = -20;
+      let seed = 1;
+      const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+      while (x < w + 20) {
+        const bw = 26 + rnd() * 46;
+        const bh = (0.10 + rnd() * 0.26) * h;
+        towers.push({ x, bw, bh, seed: (rnd() * 1000) | 0 });
+        x += bw + 6 + rnd() * 10;
+      }
+    }
+    for (const b of towers) {
+      ctx.fillStyle = "#0c1122";
+      ctx.fillRect(b.x, skyline - b.bh, b.bw, b.bh);
+      // window grid
+      let s = b.seed || 1;
+      const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+      for (let wy = skyline - b.bh + 6; wy < skyline - 4; wy += 9) {
+        for (let wx = b.x + 4; wx < b.x + b.bw - 4; wx += 8) {
+          if (rnd() > 0.45) {
+            ctx.fillStyle = rnd() > 0.5 ? "rgba(255,214,140,0.85)" : "rgba(150,200,255,0.7)";
+            ctx.fillRect(wx, wy, 4, 5);
+          }
+        }
+      }
+    }
+
+    // the Twin Towers, centre-left, taller and lit steel-blue
+    const cx = w * 0.46, tw = w * 0.045, th = h * 0.5, gap = tw * 1.5;
+    for (const tx of [cx - gap, cx + gap]) {
+      const grad = ctx.createLinearGradient(tx, 0, tx + tw, 0);
+      grad.addColorStop(0, "#2a3a5a");
+      grad.addColorStop(0.5, "#5a7bb0");
+      grad.addColorStop(1, "#2a3a5a");
+      ctx.fillStyle = grad;
+      ctx.fillRect(tx, skyline - th, tw, th);
+      // tapered top
+      ctx.beginPath();
+      ctx.moveTo(tx, skyline - th);
+      ctx.lineTo(tx + tw / 2, skyline - th - tw * 1.1);
+      ctx.lineTo(tx + tw, skyline - th);
+      ctx.closePath();
+      ctx.fill();
+      // spire
+      ctx.strokeStyle = "#8fb0e0";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(tx + tw / 2, skyline - th - tw * 1.1);
+      ctx.lineTo(tx + tw / 2, skyline - th - tw * 2.2);
+      ctx.stroke();
+    }
+    // skybridge between the towers
+    ctx.fillStyle = "#7f9ccc";
+    ctx.fillRect(cx - gap + tw, skyline - th * 0.62, gap * 2 - tw, 5);
+
+    // twinkling city lights / distant windows
+    if (!sparkle) sparkle = makeParticles(80, () => ({
+      x: Math.random() * w, y: skyline - Math.random() * h * 0.42,
+      p: Math.random() * Math.PI * 2,
+    }));
+    for (const s of sparkle) {
+      ctx.globalAlpha = 0.4 + Math.sin(t * 0.004 + s.p) * 0.35;
+      ctx.fillStyle = "#ffe6a8";
+      ctx.fillRect(s.x, s.y, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+  };
+}
+
+function wartawan() {
+  let flashes = null;
+  return (ctx, w, h, t) => {
+    // dark gala backdrop
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, "#120a18");
+    bg.addColorStop(0.6, "#1e1226");
+    bg.addColorStop(1, "#0c0710");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // step-and-repeat media wall (repeating brand marks on a panel)
+    const wallTop = h * 0.08, wallBot = h * 0.72;
+    ctx.fillStyle = "#191022";
+    ctx.fillRect(0, wallTop, w, wallBot - wallTop);
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    const cell = 108;
+    for (let y = wallTop + 34; y < wallBot; y += 62) {
+      for (let x = ((y / 62) % 2) * (cell / 2) + 20; x < w; x += cell) {
+        // small "ARVENA" wordmark tick + diamond, brand blue/red alternating
+        ctx.fillStyle = ((x + y) | 0) % 2 ? "#2D2DFF" : "#e8e8ec";
+        ctx.fillRect(x, y, 30, 4);
+        ctx.beginPath();
+        ctx.moveTo(x + 40, y + 2);
+        ctx.lineTo(x + 46, y - 4);
+        ctx.lineTo(x + 52, y + 2);
+        ctx.lineTo(x + 46, y + 8);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+
+    // warm overhead spotlights sweeping the wall
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 3; i++) {
+      const sx = w * (0.25 + 0.25 * i);
+      const sweep = Math.sin(t * 0.0009 + i * 2.1) * 0.35;
+      ctx.save();
+      ctx.translate(sx, -h * 0.05);
+      ctx.rotate(sweep);
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "rgba(255,220,150,0.20)");
+      grad.addColorStop(0.7, "rgba(255,200,120,0.05)");
+      grad.addColorStop(1, "transparent");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-w * 0.14, h);
+      ctx.lineTo(w * 0.14, h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+
+    // red-carpet glow at the foot of the wall
+    const carpet = ctx.createLinearGradient(0, wallBot, 0, h);
+    carpet.addColorStop(0, "rgba(180,30,45,0.35)");
+    carpet.addColorStop(1, "rgba(120,15,25,0.65)");
+    ctx.fillStyle = carpet;
+    ctx.fillRect(0, wallBot, w, h - wallBot);
+
+    // press camera flashes — brief popping white points along the wall
+    if (!flashes) flashes = makeParticles(26, () => ({
+      x: Math.random() * w, y: wallTop + Math.random() * (wallBot - wallTop) * 0.9,
+      next: Math.random() * 2200, on: 0,
+    }));
+    const dt = 16;
+    for (const f of flashes) {
+      f.next -= dt;
+      if (f.next <= 0) { f.on = 120; f.next = 600 + Math.random() * 2600; f.x = Math.random() * w; }
+      if (f.on > 0) {
+        const a = f.on / 120;
+        f.on -= dt;
+        const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 16);
+        g.addColorStop(0, `rgba(255,255,255,${0.9 * a})`);
+        g.addColorStop(1, "transparent");
+        ctx.fillStyle = g;
+        ctx.fillRect(f.x - 16, f.y - 16, 32, 32);
+      }
+    }
+  };
+}
+
 function studio() {
   return (ctx, w, h) => {
     const g = ctx.createRadialGradient(w / 2, h * 0.42, h * 0.1, w / 2, h * 0.5, h * 0.9);
@@ -319,7 +498,13 @@ function studio() {
   };
 }
 
-const PAINTERS = { flood, stadium, festival, mountain };
+const PAINTERS = {
+  flood, stadium, festival, mountain,
+  klcc, wartawan,
+  concert: festival, // Siti Nurhaliza concert reuses the festival stage painter
+  piala: stadium,    // Piala Malaysia reuses the stadium painter
+  studio,            // Baca Berita — news studio backdrop
+};
 
 /**
  * Build a background for a scenario. Prefers `bgVideo`/`bgImage` media if the
