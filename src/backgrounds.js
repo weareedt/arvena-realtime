@@ -517,7 +517,15 @@ export function createBackground(scenario) {
   // The procedural painter doubles as the fallback for media-backed scenarios
   // (shown while a clip loads, or permanently if the file is missing).
   const painter = (PAINTERS[scenario?.id] || studio)();
-  if (scenario?.bgVideo) return mediaBackground(scenario.bgVideo, true, painter);
-  if (scenario?.bgImage) return mediaBackground(scenario.bgImage, false, painter);
+
+  // A still image (PNG/JPG) can back a scenario on its own, OR sit between a
+  // video and the painter as a fallback. Fallback chain: video → image → painter.
+  const image = scenario?.bgImage
+    ? mediaBackground(scenario.bgImage, false, painter)
+    : null;
+  const fallback = image ? (ctx, w, h, t) => image.draw(ctx, w, h, t) : painter;
+
+  if (scenario?.bgVideo) return mediaBackground(scenario.bgVideo, true, fallback);
+  if (image) return image;
   return { draw: painter };
 }

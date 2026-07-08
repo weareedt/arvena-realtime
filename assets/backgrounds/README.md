@@ -15,6 +15,15 @@ exists.
 - Format: **H.264 MP4**, **no audio**, **seamless loop**, ideally **1920×1080**.
 - Keep it small (a few MB) — it loops forever and ships with the static site.
 
+## Still images (PNG / JPG)
+
+A scenario can use a still instead of (or as well as) a clip via a `bgImage`
+field, e.g. `bgImage: "assets/backgrounds/klcc.png"`. PNG transparency and
+cover-fit are handled. The fallback order is **`bgVideo` → `bgImage` →
+procedural painter**, so you can ship a lightweight PNG as the backplate now
+and add a video later, or use the PNG purely as a nicer fallback behind a clip.
+Same rules: same-origin, ideally 1920×1080, keep it small.
+
 ## Currently wired
 
 | Scenario | Expected file | Painter fallback |

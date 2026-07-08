@@ -88,12 +88,12 @@ export const SCENARIOS = [
   {
     id: "piala",
     label: "Piala Malaysia",
-    bgVideo: "assets/backgrounds/piala-loop.mp4",
+    bgImage: "assets/backgrounds/piala.png",
   },
   {
     id: "studio",
     label: "Baca Berita",
-    bgVideo: "assets/backgrounds/studio-loop.mp4",
+    bgImage: "assets/backgrounds/studio.png",
   },
 ];
 
