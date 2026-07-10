@@ -12,27 +12,37 @@ const FFMPEG_VER = "0.12.10";
 const UTIL_VER = "0.12.1";
 const CORE_VER = "0.12.6";
 const CORE_BASE = `https://unpkg.com/@ffmpeg/core@${CORE_VER}/dist/esm`;
+const FFMPEG_BASE = `https://unpkg.com/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm`;
+const UTIL_BASE = `https://unpkg.com/@ffmpeg/util@${UTIL_VER}/dist/esm`;
 
 let loadPromise = null; // resolves to a loaded FFmpeg instance
 let utilMod = null;
 
 async function util() {
-  if (!utilMod) utilMod = await import(`https://unpkg.com/@ffmpeg/util@${UTIL_VER}/dist/esm/index.js`);
+  if (!utilMod) utilMod = await import(`${UTIL_BASE}/index.js`);
   return utilMod;
 }
 
 async function getFFmpeg() {
   if (!loadPromise) {
     loadPromise = (async () => {
-      const { FFmpeg } = await import(`https://unpkg.com/@ffmpeg/ffmpeg@${FFMPEG_VER}/dist/esm/index.js`);
+      const { FFmpeg } = await import(`${FFMPEG_BASE}/index.js`);
       const { toBlobURL } = await util();
       const ff = new FFmpeg();
+      // Load ffmpeg's own worker from a SAME-ORIGIN blob URL. Without this, the
+      // FFmpeg class builds its worker from `import.meta.url` (the cross-origin
+      // unpkg URL), which the browser blocks — load() throws and we silently fall
+      // back to WebM. classWorkerURL as a blob makes the worker same-origin.
       await ff.load({
+        classWorkerURL: await toBlobURL(`${FFMPEG_BASE}/worker.js`, "text/javascript"),
         coreURL: await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript"),
         wasmURL: await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm"),
       });
       return ff;
-    })();
+    })().catch((err) => {
+      loadPromise = null; // allow a retry on the next recording
+      throw err;
+    });
   }
   return loadPromise;
 }

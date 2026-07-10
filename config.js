@@ -19,8 +19,21 @@ export const CONFIG = {
   // Offline (local segmentation) engine settings. No per-second cost, so no
   // tight time cap — set LOCAL.MAX_SESSION_SECONDS to 0 for unlimited.
   LOCAL: {
+    // Deployment orientation — the ONE switch. Everything else (output/recording
+    // frame size, presenter framing, and the on-screen fill) is derived from it:
+    //   "portrait"  → vertical output (short×long), fills the screen edge-to-edge,
+    //                 presenter cover-cropped to fill the tall frame.
+    //   "landscape" → classic 16:9 output, whole presenter letterboxed (uncropped).
+    ORIENTATION: "potrait",
+    // Camera CAPTURE size (landscape — webcams are natively landscape).
     WIDTH: 1920,
     HEIGHT: 1080,
+    // Optional explicit overrides — leave undefined to derive from ORIENTATION.
+    //   OUT_WIDTH / OUT_HEIGHT → output & recording frame size
+    //   PRESENTER_FIT → "cover" (fill, crop sides) | "contain" (whole presenter)
+    OUT_WIDTH: undefined,
+    OUT_HEIGHT: undefined,
+    PRESENTER_FIT: undefined,
     FPS: 30,
     MAX_SESSION_SECONDS: 0,
     // Matting engine: "rvm" (Robust Video Matting via TensorFlow.js/WebGL — soft
@@ -46,6 +59,18 @@ export const CONFIG = {
   AUTO_RECORD: true,
 
   SHOW_SIMULATED_BADGE: true,
+
+  // Scan-a-QR to download the recording. After STOP the MP4 is uploaded to public
+  // cloud storage and its URL is shown as a QR for the person to scan. The anon
+  // key is client-safe by design (public bucket + anon INSERT policy). Leave
+  // ENABLE_QR false (or the fields blank) to skip the QR and only save locally.
+  STORAGE: {
+    ENABLE_QR: true,
+    PROVIDER: "supabase",                 // "supabase" | "blob" | "r2"
+    SUPABASE_URL: "https://YOUR_PROJECT.supabase.co",
+    SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_PUBLIC_KEY",
+    BUCKET: "recordings",                 // a PUBLIC bucket with an anon INSERT policy
+  },
 
   // Dev usage meter (visible only with ?dev=1). Estimate only — the real bill
   // lives in the Decart dashboard. Set the per-second rate from the Decart

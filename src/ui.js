@@ -1,5 +1,6 @@
 // Thin DOM helpers. Keeps main.js focused on flow, not element fiddling.
 import { SCENARIOS } from "./scenarios.js";
+import { renderQR } from "./qr.js";
 
 export const els = {
   // Picture-in-picture: big = Decart output, small inset = raw camera.
@@ -20,7 +21,62 @@ export const els = {
   uiToggle: document.getElementById("ui-toggle"),
   loadingOverlay: document.getElementById("loading-overlay"),
   loadingText: document.querySelector("#loading-overlay .loading-text"),
+
+  // QR download modal
+  qrModal: document.getElementById("qr-modal"),
+  qrUploading: document.getElementById("qr-uploading"),
+  qrReady: document.getElementById("qr-ready"),
+  qrError: document.getElementById("qr-error"),
+  qrCanvas: document.getElementById("qr-canvas"),
+  qrLink: document.getElementById("qr-link"),
+  qrClose: document.getElementById("qr-close"),
+  qrDone: document.getElementById("qr-done"),
+  qrRetry: document.getElementById("qr-retry"),
+  qrDismiss: document.getElementById("qr-dismiss"),
 };
+
+// ---- QR download modal ------------------------------------------------------
+
+function qrShowState(which) {
+  if (!els.qrModal) return;
+  els.qrModal.hidden = false;
+  els.qrUploading.hidden = which !== "uploading";
+  els.qrReady.hidden = which !== "ready";
+  els.qrError.hidden = which !== "error";
+}
+
+/** Modal visible with an "Uploading…" spinner. */
+export function showQrUploading() {
+  qrShowState("uploading");
+}
+
+/** Modal showing the QR of `url` plus a tappable link. */
+export async function showQrReady(url) {
+  qrShowState("ready");
+  if (els.qrLink) {
+    els.qrLink.href = url;
+    els.qrLink.textContent = url.replace(/^https?:\/\//, "");
+  }
+  try {
+    if (els.qrCanvas) await renderQR(els.qrCanvas, url, 240);
+  } catch (err) {
+    console.error("[ARVENA] QR render failed:", err);
+  }
+}
+
+/** Modal showing an upload error (the local copy is still saved). */
+export function showQrError() {
+  qrShowState("error");
+}
+
+export function hideQrModal() {
+  if (els.qrModal) els.qrModal.hidden = true;
+}
+
+/** Clean recording view: hide all chrome except STOP (applied on START). */
+export function setCleanView(on) {
+  document.body.classList.toggle("live-recording", on);
+}
 
 /** Full-screen darken + spinner shown while a heavy model loads. */
 export function setLoading(visible, text) {
@@ -65,6 +121,26 @@ export function setLive(isLive, showBadge) {
     els.output.srcObject = null;
     els.outputPlaceholder.style.display = "";
   }
+}
+
+// Scene preview is live (composited output visible) but not yet recording:
+// START is armed, STOP idle, no ON-AIR indicator. Never touches the stream.
+export function setSceneReady() {
+  els.outputPlaceholder.style.display = "none";
+  els.recIndicator.hidden = true;
+  els.simulatedBadge.hidden = true;
+  els.goLive.disabled = false;
+  els.endSession.disabled = true;
+}
+
+// Toggle the recording (ON-AIR) state on top of a running scene, without
+// clearing the composited output — STOP returns to the live preview, not black.
+export function setRecordingLive(on, showBadge) {
+  els.recIndicator.hidden = !on;
+  els.simulatedBadge.hidden = !(on && showBadge);
+  els.goLive.disabled = on;
+  els.endSession.disabled = !on;
+  if (!on) setRecording(false);
 }
 
 // Recording is automatic now; this only updates the (optional) record button.

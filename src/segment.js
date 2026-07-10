@@ -305,6 +305,11 @@ export async function startSegmentation(opts) {
   const {
     width = 1280, height = 720, fps = 30, scenarioId, onLocalStream, onError,
     engine = "rvm", workingWidth = 512, downsampleRatio = 0.5, modelUrl = DEFAULT_RVM_MODEL,
+    // Output frame size (the composited canvas / recording). Defaults to the
+    // capture size, but can differ — e.g. a PORTRAIT 1080×1920 output composited
+    // from a landscape webcam capture. presenterFit: "contain" = fit the whole
+    // presenter (letterbox, never cropped) | "cover" = fill the frame (crop sides).
+    outWidth, outHeight, presenterFit = "contain",
   } = opts;
   if (!isSupported()) throw new Error("This browser can't run local segmentation.");
 
@@ -340,8 +345,8 @@ export async function startSegmentation(opts) {
   // camera aspect ratio so they're never stretched or cropped.
   const camW = video.videoWidth || width;
   const camH = video.videoHeight || height;
-  const outW = width;
-  const outH = height;
+  const outW = outWidth || width;
+  const outH = outHeight || height;
   const canvas = document.createElement("canvas");
   canvas.width = outW;
   canvas.height = outH;
@@ -357,8 +362,11 @@ export async function startSegmentation(opts) {
   personCanvas.height = camH;
   const pctx = personCanvas.getContext("2d");
 
-  // Letterbox-fit rect for the presenter inside the output frame (centered).
-  const fitScale = Math.min(outW / camW, outH / camH);
+  // Fit the presenter inside the output frame (centered). "contain" = letterbox
+  // (whole presenter, never cropped); "cover" = fill the frame (crop overflow —
+  // useful in portrait so a landscape webcam capture fills the tall frame).
+  const fitFn = presenterFit === "cover" ? Math.max : Math.min;
+  const fitScale = fitFn(outW / camW, outH / camH);
   const fitW = Math.round(camW * fitScale);
   const fitH = Math.round(camH * fitScale);
   const fitX = Math.round((outW - fitW) / 2);
