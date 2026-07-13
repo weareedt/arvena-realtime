@@ -80,17 +80,26 @@ export function setLoading(visible, text) {
   els.loadingOverlay.hidden = !visible;
 }
 
-/** Render scenario chips from the catalog. */
+/** Render scenario chips: `primary` scenarios in a larger top row, the rest in
+ *  a smaller second row. */
 export function renderScenarios(activeId, onPick) {
   els.scenarioButtons.innerHTML = "";
+  const mainRow = document.createElement("div");
+  mainRow.className = "scenario-row scenario-row-main";
+  const secondaryRow = document.createElement("div");
+  secondaryRow.className = "scenario-row scenario-row-secondary";
+
   for (const s of SCENARIOS) {
     const btn = document.createElement("button");
     btn.className = "btn-chip" + (s.id === activeId ? " active" : "");
     btn.dataset.id = s.id;
     btn.textContent = s.label.toUpperCase();
     btn.addEventListener("click", () => onPick(s.id));
-    els.scenarioButtons.appendChild(btn);
+    (s.primary ? mainRow : secondaryRow).appendChild(btn);
   }
+
+  els.scenarioButtons.appendChild(mainRow);
+  if (secondaryRow.childElementCount) els.scenarioButtons.appendChild(secondaryRow);
 }
 
 export function setActiveScenario(id) {

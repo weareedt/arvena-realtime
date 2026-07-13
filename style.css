@@ -89,9 +89,9 @@ body.portrait .sim-view > video { object-fit: cover; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin: 0 -20px -16px;       /* bleed the scrim to the edges */
-  padding: 28px 20px 16px;
+  padding: 24px 20px 6px;      /* smaller bottom pad → cluster + footer sit lower */
   background: linear-gradient(to top, rgba(10,10,10,0.75), transparent);
 }
 .overlay-top-right {
@@ -337,11 +337,12 @@ body.live-recording #end-session {
 /* ---- Picture-in-picture: raw camera inset, floated over the simulation ---- */
 .pip {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 18%;
-  min-width: 140px;
-  max-width: 240px;
+  top: 92px;                    /* just below the SIMULATION VIEW title */
+  left: 50%;
+  transform: translateX(-50%);  /* centered anchor */
+  width: 12%;
+  min-width: 96px;
+  max-width: 150px;
   border: var(--border);
   background: var(--edt-black);
   z-index: 2;
@@ -457,7 +458,20 @@ body.live-recording #end-session {
   color: var(--edt-grey);
 }
 
-.scenario-buttons, .mode-toggle { display: flex; gap: 10px; flex-wrap: wrap; }
+.mode-toggle { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Scenario chips: primary scenarios in a larger top row, the rest in a smaller
+   second row. The container stacks the rows; each row wraps + centers. */
+.scenario-buttons { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.scenario-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.scenario-row-main .btn-chip { font-size: 14px; padding: 14px 24px; }
+.scenario-row-secondary .btn-chip {
+  font-size: 10px;
+  padding: 7px 12px;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+.scenario-row-secondary .btn-chip.active { opacity: 1; }
 
 /* Scenario + mode chips */
 .btn-chip, .btn-toggle {
@@ -563,10 +577,10 @@ body.live-recording #end-session {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 24px;
-  font: 500 11px/1.4 var(--font-body);
-  letter-spacing: 0.08em;
+  gap: 6px;
+  padding-top: 8px;            /* was 24px — pull the footer text down toward the edge */
+  font: 500 10px/1.35 var(--font-body);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--edt-white);
 }

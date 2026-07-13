@@ -25,14 +25,16 @@ export const CONFIG = {
     //                 presenter cover-cropped to fill the tall frame.
     //   "landscape" → classic 16:9 output, whole presenter letterboxed (uncropped).
     ORIENTATION: "potrait",
-    // Camera CAPTURE size (landscape — webcams are natively landscape).
+    // Camera CAPTURE size — keep FULL 1080p so the webcam uses its full sensor
+    // (many cams center-crop / "zoom" at lower capture sizes). Matting runs on a
+    // downscaled copy anyway, so this isn't the perf bottleneck.
     WIDTH: 1920,
     HEIGHT: 1080,
-    // Optional explicit overrides — leave undefined to derive from ORIENTATION.
-    //   OUT_WIDTH / OUT_HEIGHT → output & recording frame size
-    //   PRESENTER_FIT → "cover" (fill, crop sides) | "contain" (whole presenter)
+    // OUTPUT / recording frame size — undefined derives from ORIENTATION
+    // (portrait → 1080×1920). Set explicit values to render/record smaller.
     OUT_WIDTH: undefined,
     OUT_HEIGHT: undefined,
+    //   PRESENTER_FIT → "cover" (fill, crop sides) | "contain" (whole presenter)
     PRESENTER_FIT: undefined,
     FPS: 30,
     MAX_SESSION_SECONDS: 0,

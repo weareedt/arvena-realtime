@@ -1,6 +1,6 @@
 # ARVENA — Project Status
 
-_Last updated: 2026-07-10_
+_Last updated: 2026-07-13_
 
 Current state of the ARVENA Realtime Scenario Generator. See [README.md](README.md) for
 setup/run details and [decart-realtime-scenario-plan.md](decart-realtime-scenario-plan.md)
@@ -40,11 +40,12 @@ mime is MP4-first), so the save is instant — no transcode. Browsers that can't
 fall back to WebM → MP4 via ffmpeg.wasm (`src/mp4.js`; loads its worker from a same-origin
 blob `classWorkerURL` to dodge the cross-origin-worker block).
 
-**Scan-a-QR download (dormant until configured):** after STOP the MP4 is (a) saved locally
-AND (b) uploaded to public cloud storage, whose URL is shown as a **QR modal** the person
-scans on their phone. Storage is a pluggable adapter (`src/upload.js`, Supabase impl;
-`src/qr.js` renders the QR). Stays off until `CONFIG.STORAGE` has real Supabase creds
-(placeholders shipped) — see Open items.
+**Scan-a-QR download (LIVE):** after STOP the MP4 is (a) saved locally AND (b) uploaded to
+Supabase Storage (public `ArvenaLapor` bucket, anon INSERT policy), whose public URL is
+shown as a **QR-only modal** the person scans on their phone. `src/upload.js` = Supabase
+adapter (direct browser upload, no `x-upsert` — that would need an UPDATE policy);
+`src/qr.js` renders the QR via the `qrcode` lib. Creds live in `CONFIG.STORAGE`; the anon
+key is client-safe by design. Set `STORAGE.ENABLE_QR:false` to fall back to local-only.
 
 **Orientation:** one switch `CONFIG.LOCAL.ORIENTATION` (`"portrait"` | `"landscape"`)
 derives the output/recording frame size, presenter fit, and on-screen fill. Default is
@@ -111,27 +112,36 @@ src/ui.js         DOM helpers (incl. QR modal states)
 
 ## Scenarios
 
-**Nine scenarios** (`src/scenarios.js`), **video-only** — the engine composites the
+**Eleven scenarios** (`src/scenarios.js`), **video-only** — the engine composites the
 presenter over `bgVideo`/`bgImage`; it does NOT restyle, so only `id`/`label`/media are
-read (`prompt`/`mode`/`enhance` are dead Decart-path metadata; don't add them to new
-scenarios). Backplate resolves by `id` → `bgVideo` (mp4) → `bgImage` (png/jpg) →
-procedural painter (`src/backgrounds.js`; unknown id → `studio`). Default: `flood`.
+read (no `prompt`/`mode`/`enhance` anymore). Backplate resolves by `id` → `bgVideo` (mp4)
+→ `bgImage` (png/jpg) → procedural painter (`src/backgrounds.js`; unknown id → `studio`).
+Chips render in **two rows** — `primary: true` scenarios in a larger **top row**, the rest
+in a smaller **second row** (`ui.renderScenarios`). Default: `flood`.
 
-- Original 4 (video): `flood`, `stadium`, `festival`, `mountain`.
-- Malaysian set (added 2026-07-08): `klcc` (video), `wartawan` (Malam Wartawan — painter
-  only, no clip yet), `concert` (video; painter reuses `festival`), `piala` (Piala
-  Malaysia — `piala.png`; painter reuses `stadium`), `studio` (Baca Berita — `studio.png`).
+- **Main row** (`primary`): `interactive` (new, no media yet), `concert` (video, reuses
+  `festival` painter), `terjah` (new, no media yet), `stadium` (video). `interactive`/
+  `terjah` accept EITHER `<id>-loop.mp4` or `<id>.png` — both paths set; studio painter
+  until a file exists.
+- **Second row**: `flood`, `festival`, `mountain`, `klcc` (video), `wartawan` (painter
+  only — no clip), `piala` (`piala.png`, reuses `stadium`), `studio` (`studio.png`).
 - `segment.js` is lazy-loaded (`await import(...)`) so its CDN deps can't break app boot.
   Don't reintroduce a static import of segment.js.
 
+**Performance:** RVM matting is GPU-bound. `config.js` ships full quality (capture 1080p,
+output 1080×1920, `RVM_WORKING_WIDTH:512`, `RVM_DOWNSAMPLE:0.75`). On a weak GPU, the
+documented lighter preset is smaller output + `384`/`0.5` (comments in config). Capture
+stays 1080p even when output is lowered — dropping CAPTURE size makes some webcams
+center-crop ("zoom"), so decouple via `OUT_WIDTH`/`OUT_HEIGHT` instead.
+
 ## Open items
 
-- **QR download — finish Supabase setup** (planned next week): create a free Supabase
-  project + a **public** `recordings` bucket + an anon **INSERT** policy, then paste the
-  Project URL + anon key into `CONFIG.STORAGE` in `config.js`. Until then the QR flow is
-  dormant (local download only). Adapter is pluggable (`src/upload.js`) so R2/Vercel Blob
-  are a swap. Test by scanning from a phone on cellular (proves the link is public).
-- `wartawan` still has no background clip (runs its procedural painter).
+- **Add media for `interactive`, `terjah`, `wartawan`** — drop `<id>-loop.mp4` (or
+  `<id>.png` for interactive/terjah) into `assets/backgrounds/`; they run the neutral
+  `studio` painter until then.
+- QR download is **live** (Supabase `ArvenaLapor`). Housekeeping: clips accumulate and the
+  free tier is ~1 GB — prune old files in the Supabase Storage console periodically. A few
+  `_test/` debug files may still sit in the bucket (safe to delete).
 - C2PA content credentials on exports (currently only the visible burned-in label).
 - Decart (Live AI) path is dormant; the leaked key isn't surfaced/billed while
   offline-only — rotate only if Decart is re-enabled.

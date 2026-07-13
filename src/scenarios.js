@@ -1,75 +1,63 @@
-// Scenario catalog — the product is really a tuned prompt library (plan §6).
+// Scenario catalog — DATA, not UI, so a non-engineer can add/reorder scenarios.
 //
-// Each scenario is DATA, not UI, so a non-engineer can edit prompts without
-// touching the app. Prompt rules baked in here:
-//   • concrete about placement + scale ("knee-height", "background only")
-//   • every prompt PINS the presenter ("keep the presenter sharp and
-//     photorealistic, unchanged") so the edit happens AROUND them
+// The offline engine composites the presenter over a backplate; it does NOT
+// restyle. Only `id`, `label`, and the media (`bgVideo`/`bgImage`) are used —
+// each id also maps to a procedural painter in backgrounds.js (the fallback
+// when no media is present; unknown ids use the neutral `studio` painter).
 //
-// Each scenario id also maps to a procedural backplate in backgrounds.js (used
-// by the offline engine) and may carry an optional bgVideo/bgImage.
-//
-// `mode` selects which model the scenario wants (Decart path, currently unused):
-//   "edit"    → lucy-2.1      (photoreal, edits around the real person)
-//   "restyle" → lucy-restyle-2 (full-frame stylization)
-
-const KEEP_PRESENTER =
-  "Keep the presenter sharp, photorealistic and unchanged in the foreground; " +
-  "apply all changes to the environment around them only.";
-
+// Scenarios flagged `primary: true` render in the TOP row (larger chips); the
+// rest render in a smaller second row. Order within each row follows this array.
 export const SCENARIOS = [
+  // ---- MAIN scenarios (top row) ---------------------------------------------
   {
-    id: "flood",
-    label: "Flood",
-    mode: "restyle",
-    enhance: true,
-    // OFFLINE engine: if this looping clip exists it's used as the backplate;
-    // otherwise it falls back to the procedural flood painter (backgrounds.js).
-    // Drop a 1080p MP4 (H.264, no audio, seamless loop) at this path to enable it.
-    bgVideo: "assets/backgrounds/flood-loop.mp4",
-    prompt:
-      "Heavy urban flood news scene: brown turbid floodwater up to knee height across " +
-      "the ground, heavy rain, overcast storm sky, half-submerged cars and floating " +
-      "debris in the background, sandbags along a wall. " + KEEP_PRESENTER,
+    id: "interactive",
+    label: "Interactive",
+    primary: true,
+    // Media coming: drop EITHER assets/backgrounds/interactive-loop.mp4 (video)
+    // OR assets/backgrounds/interactive.png (still) — whichever exists is used
+    // (video preferred), else it falls back to the neutral studio painter.
+    bgVideo: "assets/backgrounds/interactive-loop.mp4",
+    bgImage: "assets/backgrounds/interactive.png",
+  },
+  {
+    id: "concert",
+    label: "Concert",
+    primary: true,
+    bgVideo: "assets/backgrounds/concert-loop.mp4",
+  },
+  {
+    id: "terjah",
+    label: "Terjah",
+    primary: true,
+    // Media coming: interactive-style — drop terjah-loop.mp4 or terjah.png.
+    bgVideo: "assets/backgrounds/terjah-loop.mp4",
+    bgImage: "assets/backgrounds/terjah.png",
   },
   {
     id: "stadium",
-    label: "Stadium Pitch",
-    mode: "restyle",
-    enhance: true,
+    label: "Stadium",
+    primary: true,
     bgVideo: "assets/backgrounds/stadium-loop.mp4",
-    prompt:
-      "Inside a packed football stadium at night: floodlit green pitch with painted " +
-      "side lines, tiered stands full of cheering fans, bright stadium floodlights and a " +
-      "glowing scoreboard in the background. " + KEEP_PRESENTER,
+  },
+
+  // ---- SECONDARY scenarios (second row, smaller chips) ----------------------
+  // Video-only: the engine composites the presenter over bgVideo/bgImage (else a
+  // procedural painter in backgrounds.js). No prompt/mode/enhance needed.
+  {
+    id: "flood",
+    label: "Flood",
+    bgVideo: "assets/backgrounds/flood-loop.mp4",
   },
   {
     id: "festival",
     label: "Festival",
-    mode: "restyle",
-    enhance: true,
     bgVideo: "assets/backgrounds/festival-loop.mp4",
-    prompt:
-      "Outdoor night music festival: large illuminated main stage, sweeping coloured " +
-      "spotlights and laser beams, dense crowd silhouettes with raised hands, confetti " +
-      "in the air, deep dusk sky. " + KEEP_PRESENTER,
   },
   {
     id: "mountain",
     label: "Mountain",
-    mode: "restyle",
-    enhance: true,
     bgVideo: "assets/backgrounds/mountain-loop.mp4",
-    prompt:
-      "High alpine mountain landscape: layered snow-capped peaks, clear blue sky with " +
-      "drifting clouds, bright sun and crisp daylight, distant ridgelines. " + KEEP_PRESENTER,
   },
-
-  // ---- OFFLINE video-only scenarios -----------------------------------------
-  // The current engine composites the presenter over `bgVideo` (falling back to
-  // the matching painter in backgrounds.js). It does NOT restyle, so these carry
-  // no prompt/mode/enhance — only id, label and the backplate matter.
-  // Drop the matching MP4 in assets/backgrounds/ to replace the painter.
   {
     id: "klcc",
     label: "KLCC",
@@ -79,11 +67,6 @@ export const SCENARIOS = [
     id: "wartawan",
     label: "Malam Wartawan",
     bgVideo: "assets/backgrounds/wartawan-loop.mp4",
-  },
-  {
-    id: "concert",
-    label: "Concert",
-    bgVideo: "assets/backgrounds/concert-loop.mp4",
   },
   {
     id: "piala",
