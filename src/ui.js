@@ -28,7 +28,6 @@ export const els = {
   qrReady: document.getElementById("qr-ready"),
   qrError: document.getElementById("qr-error"),
   qrCanvas: document.getElementById("qr-canvas"),
-  qrLink: document.getElementById("qr-link"),
   qrClose: document.getElementById("qr-close"),
   qrDone: document.getElementById("qr-done"),
   qrRetry: document.getElementById("qr-retry"),
@@ -50,13 +49,9 @@ export function showQrUploading() {
   qrShowState("uploading");
 }
 
-/** Modal showing the QR of `url` plus a tappable link. */
+/** Modal showing the QR for `url` (scan-only — no link text). */
 export async function showQrReady(url) {
   qrShowState("ready");
-  if (els.qrLink) {
-    els.qrLink.href = url;
-    els.qrLink.textContent = url.replace(/^https?:\/\//, "");
-  }
   try {
     if (els.qrCanvas) await renderQR(els.qrCanvas, url, 240);
   } catch (err) {

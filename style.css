@@ -271,13 +271,6 @@ body.live-recording #end-session {
   line-height: 0;
 }
 .qr-tile canvas { width: 240px; height: 240px; display: block; }
-.qr-link {
-  font: 500 12px/1.4 var(--font-body);
-  color: var(--edt-blue, #2D2DFF);
-  word-break: break-all;
-  text-decoration: none;
-}
-.qr-link:hover { text-decoration: underline; }
 .qr-msg {
   font: 500 13px/1.5 var(--font-body);
   color: var(--edt-white, #fff);

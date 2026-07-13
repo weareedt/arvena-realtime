@@ -67,7 +67,7 @@ export const CONFIG = {
   // an anon INSERT policy). Set ENABLE_QR false to only save locally.
   STORAGE: {
     ENABLE_QR: true,
-    PROVIDER: "supabase",                 // "supabase" | "blob" | "r2"
+    PROVIDER: "supabase",
     SUPABASE_URL: "https://YOUR_PROJECT.supabase.co",
     SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_PUBLIC_KEY",
     BUCKET: "recordings",                 // a PUBLIC bucket with an anon INSERT policy

@@ -9,8 +9,7 @@
 // bigger. Supabase's anon (publishable) key is designed to be client-side, so
 // this is safe with a public bucket + an anon INSERT policy.
 //
-// Provider is swappable via CONFIG.STORAGE.PROVIDER — Supabase is implemented;
-// "blob" / "r2" are stubs so switching later is a one-module change.
+// Storage backend: Supabase Storage (public bucket + anon INSERT policy).
 
 import { CONFIG } from "../config.js";
 
@@ -21,10 +20,7 @@ export function isConfigured() {
   // Treat the shipped placeholders ("YOUR_…") as unconfigured so the QR flow
   // stays dormant (local download only) until real credentials are filled in.
   const set = (v) => !!v && !/YOUR_/.test(v);
-  if ((s.PROVIDER ?? "supabase") === "supabase") {
-    return set(s.SUPABASE_URL) && set(s.SUPABASE_ANON_KEY) && !!s.BUCKET;
-  }
-  return false;
+  return set(s.SUPABASE_URL) && set(s.SUPABASE_ANON_KEY) && !!s.BUCKET;
 }
 
 /**
@@ -35,13 +31,7 @@ export function isConfigured() {
  * @throws if not configured or the upload fails (caller shows an error + retry)
  */
 export async function uploadRecording(blob, name) {
-  const provider = CONFIG.STORAGE?.PROVIDER ?? "supabase";
-  switch (provider) {
-    case "supabase": return uploadSupabase(blob, name);
-    case "blob":     throw new Error("Vercel Blob provider not configured yet.");
-    case "r2":       throw new Error("Cloudflare R2 provider not configured yet.");
-    default:         throw new Error(`Unknown storage provider: ${provider}`);
-  }
+  return uploadSupabase(blob, name);
 }
 
 // ---- Supabase Storage (direct browser upload) -------------------------------
@@ -63,7 +53,8 @@ async function uploadSupabase(blob, name) {
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       apikey: SUPABASE_ANON_KEY,
       "Content-Type": blob.type || "video/mp4",
-      "x-upsert": "true",
+      // No x-upsert: names are unique (timestamped), and upsert would require an
+      // UPDATE policy too — a plain INSERT is all the anon policy grants.
       "cache-control": "3600",
     },
     body: blob,
