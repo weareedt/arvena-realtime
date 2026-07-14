@@ -119,10 +119,9 @@ read (no `prompt`/`mode`/`enhance` anymore). Backplate resolves by `id` → `bgV
 Chips render in **two rows** — `primary: true` scenarios in a larger **top row**, the rest
 in a smaller **second row** (`ui.renderScenarios`). Default: `flood`.
 
-- **Main row** (`primary`): `interactive` (new, no media yet), `concert` (video, reuses
-  `festival` painter), `terjah` (new, no media yet), `stadium` (video). `interactive`/
-  `terjah` accept EITHER `<id>-loop.mp4` or `<id>.png` — both paths set; studio painter
-  until a file exists.
+- **Main row** (`primary`): `interactive` (video), `concert` (video, reuses `festival`
+  painter), `terjah` (video), `stadium` (video). `interactive`/`terjah` accept EITHER
+  `<id>-loop.mp4` or `<id>.png` (both paths set); both now ship an MP4.
 - **Second row**: `flood`, `festival`, `mountain`, `klcc` (video), `wartawan` (painter
   only — no clip), `piala` (`piala.png`, reuses `stadium`), `studio` (`studio.png`).
 - `segment.js` is lazy-loaded (`await import(...)`) so its CDN deps can't break app boot.
@@ -136,9 +135,8 @@ center-crop ("zoom"), so decouple via `OUT_WIDTH`/`OUT_HEIGHT` instead.
 
 ## Open items
 
-- **Add media for `interactive`, `terjah`, `wartawan`** — drop `<id>-loop.mp4` (or
-  `<id>.png` for interactive/terjah) into `assets/backgrounds/`; they run the neutral
-  `studio` painter until then.
+- **`wartawan` still has no clip** — drop `wartawan-loop.mp4` into `assets/backgrounds/`;
+  it runs the `wartawan` painter until then. (`interactive`/`terjah` now have MP4s.)
 - QR download is **live** (Supabase `ArvenaLapor`). Housekeeping: clips accumulate and the
   free tier is ~1 GB — prune old files in the Supabase Storage console periodically. A few
   `_test/` debug files may still sit in the bucket (safe to delete).

@@ -34,9 +34,9 @@ the main row).
 
 | Scenario | Expected file(s) | Painter fallback | Media present? |
 | --- | --- | --- | --- |
-| `interactive` | `interactive-loop.mp4` *or* `interactive.png` | `studio` (no dedicated painter) | ❌ not yet |
+| `interactive` | `interactive-loop.mp4` (or `interactive.png`) | `studio` (no dedicated painter) | ✅ video |
 | `concert` | `concert-loop.mp4` | reuses `festival` | ✅ |
-| `terjah` | `terjah-loop.mp4` *or* `terjah.png` | `studio` (no dedicated painter) | ❌ not yet |
+| `terjah` | `terjah-loop.mp4` (or `terjah.png`) | `studio` (no dedicated painter) | ✅ video |
 | `stadium` | `stadium-loop.mp4` | `stadium` | ✅ |
 
 **Secondary row**
@@ -51,10 +51,10 @@ the main row).
 | `piala` | `piala.png` | reuses `stadium` | ✅ |
 | `studio` | `studio.png` | `studio` (news backdrop) | ✅ |
 
-`interactive` and `terjah` are new — drop **either** an MP4 (`<id>-loop.mp4`) or a
-still (`<id>.png`) and it's used automatically (video preferred). Until then they
-show the neutral `studio` painter. Each scenario falls back to its procedural
-painter until its file is present.
+`interactive` and `terjah` each accept **either** an MP4 (`<id>-loop.mp4`) or a
+still (`<id>.png`) — video preferred; both now ship an MP4. Each scenario falls
+back to its procedural painter until its file is present. Only `wartawan` still
+runs painter-only (no clip yet).
 
 ## Tip: render a loop once with Decart
 
