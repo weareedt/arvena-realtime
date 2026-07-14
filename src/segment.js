@@ -309,7 +309,9 @@ export async function startSegmentation(opts) {
     // capture size, but can differ — e.g. a PORTRAIT 1080×1920 output composited
     // from a landscape webcam capture. presenterFit: "contain" = fit the whole
     // presenter (letterbox, never cropped) | "cover" = fill the frame (crop sides).
-    outWidth, outHeight, presenterFit = "contain",
+    // presenterScale: extra zoom on the presenter — 1 = as fit, <1 pulls back
+    // (e.g. 0.8 = 20% smaller, less zoomed, shows more of them + background).
+    outWidth, outHeight, presenterFit = "contain", presenterScale = 1,
   } = opts;
   if (!isSupported()) throw new Error("This browser can't run local segmentation.");
 
@@ -366,7 +368,7 @@ export async function startSegmentation(opts) {
   // (whole presenter, never cropped); "cover" = fill the frame (crop overflow —
   // useful in portrait so a landscape webcam capture fills the tall frame).
   const fitFn = presenterFit === "cover" ? Math.max : Math.min;
-  const fitScale = fitFn(outW / camW, outH / camH);
+  const fitScale = fitFn(outW / camW, outH / camH) * (presenterScale || 1);
   const fitW = Math.round(camW * fitScale);
   const fitH = Math.round(camH * fitScale);
   const fitX = Math.round((outW - fitW) / 2);

@@ -21,6 +21,8 @@ export const els = {
   uiToggle: document.getElementById("ui-toggle"),
   loadingOverlay: document.getElementById("loading-overlay"),
   loadingText: document.querySelector("#loading-overlay .loading-text"),
+  recTimer: document.getElementById("rec-timer"),
+  recTime: document.getElementById("rec-time"),
 
   // QR download modal
   qrModal: document.getElementById("qr-modal"),
@@ -72,6 +74,10 @@ export function hideQrModal() {
 export function setCleanView(on) {
   document.body.classList.toggle("live-recording", on);
 }
+
+/** Recording timer (top-center). */
+export function setRecTimer(text) { if (els.recTime) els.recTime.textContent = text; }
+export function showRecTimer(on) { if (els.recTimer) els.recTimer.hidden = !on; }
 
 /** Full-screen darken + spinner shown while a heavy model loads. */
 export function setLoading(visible, text) {

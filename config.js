@@ -36,8 +36,13 @@ export const CONFIG = {
     OUT_HEIGHT: undefined,
     //   PRESENTER_FIT → "cover" (fill, crop sides) | "contain" (whole presenter)
     PRESENTER_FIT: undefined,
+    // Extra zoom on the presenter: 1 = full fit (most zoomed in portrait cover),
+    // lower pulls them back (0.8 = 20% smaller, less zoomed, more of them shows).
+    PRESENTER_SCALE: 0.8,
     FPS: 30,
-    MAX_SESSION_SECONDS: 0,
+    // Recording auto-stops (saves + shows the QR) after this many seconds.
+    // 0 = unlimited. 60 = each recording capped at 1 minute.
+    MAX_SESSION_SECONDS: 60,
     // Matting engine: "rvm" (Robust Video Matting via TensorFlow.js/WebGL — soft
     // hair-level edges + temporal coherence, best quality) | "mediapipe" (GPU
     // ImageSegmenter fallback). RVM auto-falls back to MediaPipe if WebGL is

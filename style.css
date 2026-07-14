@@ -206,6 +206,26 @@ body.live-recording #end-session {
 }
 
 /* ============================================================
+   Recording timer — top-center, visible even in the clean
+   recording view. Counts down the session cap (or up if uncapped).
+   ============================================================ */
+.rec-timer {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  font: 700 15px/1 var(--font-body);
+  letter-spacing: 0.1em;
+  color: var(--edt-white);
+  background: rgba(10, 10, 10, 0.6);
+  border: var(--border);
+  padding: 8px 14px;
+}
+.rec-timer[hidden] { display: none; }
+.rec-dot { color: var(--arvena-red); animation: rec-blink 1.1s steps(1) infinite; }
+
+/* ============================================================
    QR download modal — shown after STOP so the person can scan
    a QR to download their clip. Neo-brutalist window-chrome card.
    ============================================================ */

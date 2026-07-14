@@ -36,6 +36,7 @@ const IS_PORTRAIT = (CONFIG.LOCAL?.ORIENTATION ?? "landscape").toLowerCase().sta
 const OUT_W = CONFIG.LOCAL?.OUT_WIDTH ?? (IS_PORTRAIT ? Math.min(CAP_W, CAP_H) : Math.max(CAP_W, CAP_H));
 const OUT_H = CONFIG.LOCAL?.OUT_HEIGHT ?? (IS_PORTRAIT ? Math.max(CAP_W, CAP_H) : Math.min(CAP_W, CAP_H));
 const PRESENTER_FIT = CONFIG.LOCAL?.PRESENTER_FIT ?? (IS_PORTRAIT ? "cover" : "contain");
+const PRESENTER_SCALE = CONFIG.LOCAL?.PRESENTER_SCALE ?? 1;
 
 function bump() { state.guards?.bump(); }
 
@@ -143,6 +144,7 @@ async function startScene() {
       outWidth: OUT_W,
       outHeight: OUT_H,
       presenterFit: PRESENTER_FIT,
+      presenterScale: PRESENTER_SCALE,
       fps: CONFIG.LOCAL?.FPS,
       feather: CONFIG.LOCAL?.EDGE_FEATHER_PX,
       engine: CONFIG.LOCAL?.SEG_ENGINE,
@@ -173,6 +175,7 @@ async function beginRecording() {
   state.status = "recording";
   ui.setRecordingLive(true, CONFIG.SHOW_SIMULATED_BADGE);
   ui.setCleanView(true); // hide all chrome except STOP while recording
+  startRecTimer();
   if (CONFIG.AUTO_RECORD) await startAutoRecord();
 
   // No cost ticks — offline generation is free. Only enforce a cap if set.
@@ -190,6 +193,7 @@ async function stopRecording(reason) {
   if (state.status !== "recording") return;
   state.guards?.stop();
   state.guards = null;
+  stopRecTimer();
   state.status = "scene";
   // Restore the UI *first* so the "Converting to MP4… %" progress is visible —
   // otherwise the long transcode makes STOP look like it did nothing.
@@ -243,6 +247,27 @@ async function applyScenario(id) {
     if (state.status === "scene")
       ui.setStatus(`Ready — press START to record · ${scenario.label}`, "ok");
   }
+}
+
+// ---- recording timer (top-center) -------------------------------------------
+// Counts DOWN the session cap while recording (or up if uncapped). Stops/hides
+// when recording ends.
+let recTimerId = 0;
+function startRecTimer() {
+  const cap = CONFIG.LOCAL?.MAX_SESSION_SECONDS ?? 0;
+  const t0 = performance.now();
+  const tick = () => {
+    const elapsed = Math.floor((performance.now() - t0) / 1000);
+    const s = cap > 0 ? Math.max(0, cap - elapsed) : elapsed;
+    ui.setRecTimer(`${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
+  };
+  tick();
+  ui.showRecTimer(true);
+  recTimerId = setInterval(tick, 250);
+}
+function stopRecTimer() {
+  if (recTimerId) { clearInterval(recTimerId); recTimerId = 0; }
+  ui.showRecTimer(false);
 }
 
 // ---- recording --------------------------------------------------------------
