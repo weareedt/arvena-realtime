@@ -13,10 +13,8 @@ export const SCENARIOS = [
     id: "interactive",
     label: "Interactive",
     primary: true,
-    // Media coming: drop EITHER assets/backgrounds/interactive-loop.mp4 (video)
-    // OR assets/backgrounds/interactive.png (still) — whichever exists is used
-    // (video preferred), else it falls back to the neutral studio painter.
-    bgVideo: "assets/backgrounds/interactive-loop.mp4",
+    bgVideo: "assets/backgrounds/interactive-loop.mp4",              // landscape
+    bgVideoPortrait: "assets/backgrounds/interactive-loop-portrait.mp4", // portrait
     bgImage: "assets/backgrounds/interactive.png",
   },
   {

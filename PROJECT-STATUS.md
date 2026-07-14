@@ -50,12 +50,20 @@ adapter (direct browser upload, no `x-upsert` — that would need an UPDATE poli
 `src/qr.js` renders the QR via the `qrcode` lib. Creds live in `CONFIG.STORAGE`; the anon
 key is client-safe by design. Set `STORAGE.ENABLE_QR:false` to fall back to local-only.
 
-**Orientation:** one switch `CONFIG.LOCAL.ORIENTATION` (`"portrait"` | `"landscape"`)
-derives the output/recording frame size, presenter fit, and on-screen fill. Default is
-**portrait** 1080×1920 (kiosk deployment): background cover-fills edge-to-edge, presenter
-cover-cropped to fill the tall frame. Camera capture stays landscape for a sharp matte.
-`LOCAL.PRESENTER_SCALE` (default **0.8**) pulls the presenter back to reduce the portrait
-cover-fit zoom (1 = full fit/most zoomed, lower = smaller + more background around them).
+**Orientation** (`CONFIG.LOCAL.ORIENTATION`) drives output/recording size, presenter fit,
+on-screen fill, and which assets load:
+- **`"auto"`** (default) — detects from the **window** and flips the whole pipeline live on
+  resize/rotate (`detectPortrait()`/`orientationView()` in main.js; a `matchMedia`+`resize`
+  listener rebuilds the scene via `restartScene()`). Won't flip mid-recording — deferred to
+  when recording stops (`pendingReorient`).
+- **`"portrait"` / `"landscape"`** — force it (fixed kiosk). Portrait = 1080×1920, bg
+  cover-fills edge-to-edge, presenter cover-cropped; landscape = 16:9, presenter letterboxed.
+- Camera capture stays landscape (1080p) for a sharp matte; output size derives (or set
+  `OUT_WIDTH/OUT_HEIGHT`). `PRESENTER_SCALE` (1) can pull the presenter back to ease zoom.
+- **Orientation-specific backgrounds:** a scenario's `bgVideoPortrait`/`bgImagePortrait`
+  is used when portrait (else the generic `bgVideo`/`bgImage`). Portrait-native clips also
+  remove the landscape-in-portrait cover-fit zoom. `bgOffsetX/Y` (or global `BG_OFFSET_X/Y`,
+  −1…1) pans a cover-fit background to choose which slice shows.
 
 ### Offline engine (free, on-device)
 

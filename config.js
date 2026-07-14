@@ -19,12 +19,12 @@ export const CONFIG = {
   // Offline (local segmentation) engine settings. No per-second cost, so no
   // tight time cap — set LOCAL.MAX_SESSION_SECONDS to 0 for unlimited.
   LOCAL: {
-    // Deployment orientation — the ONE switch. Everything else (output/recording
-    // frame size, presenter framing, and the on-screen fill) is derived from it:
-    //   "portrait"  → vertical output (short×long), fills the screen edge-to-edge,
-    //                 presenter cover-cropped to fill the tall frame.
-    //   "landscape" → classic 16:9 output, whole presenter letterboxed (uncropped).
-    ORIENTATION: "potrait",
+    // Orientation. Everything (output/recording size, presenter framing, on-screen
+    // fill, which assets load) follows this:
+    //   "auto"      → detect from the window; flips live on resize/rotate.
+    //   "portrait"  → force vertical output, presenter cover-cropped to fill.
+    //   "landscape" → force classic 16:9, whole presenter letterboxed.
+    ORIENTATION: "auto",
     // Camera CAPTURE size — keep FULL 1080p so the webcam uses its full sensor
     // (many cams center-crop / "zoom" at lower capture sizes). Matting runs on a
     // downscaled copy anyway, so this isn't the perf bottleneck.

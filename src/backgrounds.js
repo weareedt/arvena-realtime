@@ -13,6 +13,15 @@
 
 import { CONFIG } from "../config.js";
 
+// Portrait when forced ("portrait"), or auto-detected from the window ("auto" /
+// unset). Kept in sync with the same logic in main.js.
+function detectPortrait() {
+  const cfg = (CONFIG.LOCAL?.ORIENTATION ?? "auto").toLowerCase();
+  if (cfg.startsWith("p")) return true;
+  if (cfg.startsWith("l")) return false;
+  return typeof window !== "undefined" && window.matchMedia("(orientation: portrait)").matches;
+}
+
 // ---- media-backed background (optional bgVideo / bgImage on a scenario) ------
 
 function mediaBackground(src, isVideo, fallback, offsetX = 0, offsetY = 0) {
@@ -534,7 +543,7 @@ export function createBackground(scenario) {
   // `bgVideoPortrait`/`bgImagePortrait`, falling back to the generic `bgVideo`/
   // `bgImage`. A portrait-native clip also avoids the cover-fit zoom you get
   // from cramming a landscape clip into a portrait frame.
-  const isPortrait = (CONFIG.LOCAL?.ORIENTATION ?? "landscape").toLowerCase().startsWith("p");
+  const isPortrait = detectPortrait();
   const vid = (isPortrait && scenario?.bgVideoPortrait) || scenario?.bgVideo;
   const img = (isPortrait && scenario?.bgImagePortrait) || scenario?.bgImage;
 

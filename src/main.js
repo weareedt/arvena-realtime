@@ -26,17 +26,57 @@ function modelIdForMode(mode) {
   return mode === "restyle" ? CONFIG.MODELS.restyle : CONFIG.MODELS.edit;
 }
 
-// ---- orientation (single deployment switch: CONFIG.LOCAL.ORIENTATION) --------
-// Derives the output/recording frame size, presenter framing and on-screen fill
-// from one setting. Explicit LOCAL.OUT_WIDTH/OUT_HEIGHT/PRESENTER_FIT override.
+// ---- orientation ------------------------------------------------------------
+// CONFIG.LOCAL.ORIENTATION: "portrait" | "landscape" forces that orientation;
+// anything else (e.g. "auto") AUTO-DETECTS from the window and flips the whole
+// pipeline (output/recording size, presenter fit, on-screen fill, which assets
+// load) live when you cross portrait↔landscape. Explicit LOCAL.OUT_WIDTH/
+// OUT_HEIGHT/PRESENTER_FIT still override the derived values.
 const CAP_W = CONFIG.LOCAL?.WIDTH ?? 1920;
 const CAP_H = CONFIG.LOCAL?.HEIGHT ?? 1080;
-// Tolerant match so a typo like "potrait" still reads as portrait.
-const IS_PORTRAIT = (CONFIG.LOCAL?.ORIENTATION ?? "landscape").toLowerCase().startsWith("p");
-const OUT_W = CONFIG.LOCAL?.OUT_WIDTH ?? (IS_PORTRAIT ? Math.min(CAP_W, CAP_H) : Math.max(CAP_W, CAP_H));
-const OUT_H = CONFIG.LOCAL?.OUT_HEIGHT ?? (IS_PORTRAIT ? Math.max(CAP_W, CAP_H) : Math.min(CAP_W, CAP_H));
-const PRESENTER_FIT = CONFIG.LOCAL?.PRESENTER_FIT ?? (IS_PORTRAIT ? "cover" : "contain");
 const PRESENTER_SCALE = CONFIG.LOCAL?.PRESENTER_SCALE ?? 1;
+
+function detectPortrait() {
+  const cfg = (CONFIG.LOCAL?.ORIENTATION ?? "auto").toLowerCase();
+  if (cfg.startsWith("p")) return true;   // forced portrait ("portrait"/"potrait")
+  if (cfg.startsWith("l")) return false;  // forced landscape
+  return window.matchMedia("(orientation: portrait)").matches; // auto
+}
+
+// Output frame + presenter fit for the current orientation.
+function orientationView() {
+  const isPortrait = detectPortrait();
+  const outW = CONFIG.LOCAL?.OUT_WIDTH ?? (isPortrait ? Math.min(CAP_W, CAP_H) : Math.max(CAP_W, CAP_H));
+  const outH = CONFIG.LOCAL?.OUT_HEIGHT ?? (isPortrait ? Math.max(CAP_W, CAP_H) : Math.min(CAP_W, CAP_H));
+  const presenterFit = CONFIG.LOCAL?.PRESENTER_FIT ?? (isPortrait ? "cover" : "contain");
+  return { isPortrait, outW, outH, presenterFit };
+}
+
+let lastPortrait = null;      // to detect actual portrait↔landscape flips
+let pendingReorient = false;  // orientation changed mid-recording → apply on stop
+
+function applyOrientationClass() {
+  const isPortrait = detectPortrait();
+  document.body.classList.toggle("portrait", isPortrait);
+  return isPortrait;
+}
+
+// Rebuild the scene at the new orientation's dimensions (skips during recording
+// so a rotation can't interrupt a take — it's applied when recording stops).
+async function onOrientationChange() {
+  const isPortrait = applyOrientationClass();
+  if (isPortrait === lastPortrait) return; // same orientation → nothing to rebuild
+  lastPortrait = isPortrait;
+  if (state.status === "recording") { pendingReorient = true; return; }
+  if (state.local && state.status === "scene") await restartScene();
+}
+
+async function restartScene() {
+  try { await state.local?.stop(); } catch { /* ignore */ }
+  state.local = null;
+  state.status = "idle";
+  await startScene();
+}
 
 function bump() { state.guards?.bump(); }
 
@@ -135,15 +175,17 @@ async function startScene() {
   ui.setStatus("Loading segmentation model…");
   stopPreview(); // hand the camera to the segmentation capture
   ui.setLoading(true, "LOADING SEGMENTATION MODEL");
+  const view = orientationView();
+  lastPortrait = view.isPortrait;
   try {
     // Lazy-load the segmentation engine so its CDN deps can never break app boot.
     const { startSegmentation } = await import("./segment.js");
     state.local = await startSegmentation({
       width: CONFIG.LOCAL?.WIDTH,
       height: CONFIG.LOCAL?.HEIGHT,
-      outWidth: OUT_W,
-      outHeight: OUT_H,
-      presenterFit: PRESENTER_FIT,
+      outWidth: view.outW,
+      outHeight: view.outH,
+      presenterFit: view.presenterFit,
       presenterScale: PRESENTER_SCALE,
       fps: CONFIG.LOCAL?.FPS,
       feather: CONFIG.LOCAL?.EDGE_FEATHER_PX,
@@ -204,6 +246,9 @@ async function stopRecording(reason) {
   if (reason) ui.setStatus(reason, "ok");
   else if (!wasRecording)
     ui.setStatus(`Ready — press START to record · ${getScenario(state.scenarioId).label}`, "ok");
+
+  // Apply an orientation flip that happened mid-recording.
+  if (pendingReorient) { pendingReorient = false; await restartScene(); }
 }
 
 async function endSession(reason) {
@@ -368,7 +413,10 @@ function toggleUI() {
 // ---- boot -------------------------------------------------------------------
 
 function init() {
-  document.body.classList.toggle("portrait", IS_PORTRAIT); // drives on-screen fill
+  lastPortrait = applyOrientationClass(); // set the initial on-screen fill
+  // Auto-detect: re-evaluate orientation when the window flips or resizes.
+  window.matchMedia("(orientation: portrait)").addEventListener("change", onOrientationChange);
+  window.addEventListener("resize", onOrientationChange);
   ui.renderScenarios(state.scenarioId, applyScenario);
   ui.setLive(false, CONFIG.SHOW_SIMULATED_BADGE);
   ui.els.goLive.disabled = true; // armed once the scene preview is ready
