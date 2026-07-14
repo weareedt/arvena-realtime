@@ -530,14 +530,20 @@ export function createBackground(scenario) {
   const offX = scenario?.bgOffsetX ?? CONFIG.LOCAL?.BG_OFFSET_X ?? 0;
   const offY = scenario?.bgOffsetY ?? CONFIG.LOCAL?.BG_OFFSET_Y ?? 0;
 
+  // Orientation-specific assets: when the app is PORTRAIT, prefer a scenario's
+  // `bgVideoPortrait`/`bgImagePortrait`, falling back to the generic `bgVideo`/
+  // `bgImage`. A portrait-native clip also avoids the cover-fit zoom you get
+  // from cramming a landscape clip into a portrait frame.
+  const isPortrait = (CONFIG.LOCAL?.ORIENTATION ?? "landscape").toLowerCase().startsWith("p");
+  const vid = (isPortrait && scenario?.bgVideoPortrait) || scenario?.bgVideo;
+  const img = (isPortrait && scenario?.bgImagePortrait) || scenario?.bgImage;
+
   // A still image (PNG/JPG) can back a scenario on its own, OR sit between a
   // video and the painter as a fallback. Fallback chain: video → image → painter.
-  const image = scenario?.bgImage
-    ? mediaBackground(scenario.bgImage, false, painter, offX, offY)
-    : null;
+  const image = img ? mediaBackground(img, false, painter, offX, offY) : null;
   const fallback = image ? (ctx, w, h, t) => image.draw(ctx, w, h, t) : painter;
 
-  if (scenario?.bgVideo) return mediaBackground(scenario.bgVideo, true, fallback, offX, offY);
+  if (vid) return mediaBackground(vid, true, fallback, offX, offY);
   if (image) return image;
   return { draw: painter };
 }

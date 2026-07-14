@@ -15,6 +15,21 @@ exists.
 - Format: **H.264 MP4**, **no audio**, **seamless loop**, ideally **1920×1080**.
 - Keep it small (a few MB) — it loops forever and ships with the static site.
 
+## Orientation-specific assets
+
+When the app runs **portrait** (`CONFIG.LOCAL.ORIENTATION`), a scenario can use a
+different, portrait-native clip via `bgVideoPortrait` (or `bgImagePortrait`) — it
+falls back to the generic `bgVideo`/`bgImage` when not set. Portrait-native media
+(9:16) also removes the cover-fit zoom you get from a landscape clip in a tall
+frame.
+
+```js
+{ id: "concert", label: "Concert", primary: true,
+  bgVideo:         "assets/backgrounds/concert-loop.mp4",          // landscape / fallback
+  bgVideoPortrait: "assets/backgrounds/concert-loop-portrait.mp4"  // used when portrait
+}
+```
+
 ## Still images (PNG / JPG)
 
 A scenario can use a still instead of (or as well as) a clip via a `bgImage`
