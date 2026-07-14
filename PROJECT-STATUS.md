@@ -28,12 +28,15 @@ longer reachable from the UI.)
    (top-right), START/STOP + scenario chips + status + footer (bottom), **CAMERA.IN** raw
    PiP (bottom-right). (`startScene()` in `main.js`.)
 2. Picking a scenario chip swaps the backplate live in the preview (no recording yet).
-3. Operator clicks **START →**: recording begins and **all chrome is hidden except the
-   STOP button** (clean recording view, `body.live-recording`). Recording burns in the
-   mic audio + `SIMULATED — AI GENERATED` label. (`beginRecording()`.)
-4. **No time cap** offline (`LOCAL.MAX_SESSION_SECONDS = 0`).
-5. On **STOP**: the UI restores immediately, the clip is saved (see below), and the app
-   returns to the **live preview** — never a black screen. (`stopRecording()`.)
+3. Operator clicks **START →**: recording begins, **all chrome is hidden except the STOP
+   button** (clean recording view, `body.live-recording`), and a top-center **countdown
+   timer** shows. Recording burns in the mic audio + `SIMULATED — AI GENERATED` label.
+   (`beginRecording()` + `startRecTimer()`.)
+4. **Recording auto-stops at `LOCAL.MAX_SESSION_SECONDS`** (currently **60s** = 1 min);
+   the timer counts down to 0:00 (counts up if the cap is 0/unlimited). Guard fires
+   `onMaxReached` → `stopRecording()`.
+5. On **STOP** (manual or cap): the UI + timer restore immediately, the clip is saved (see
+   below), and the app returns to the **live preview** — never a black screen.
 
 **Recording format:** modern Chrome/Edge record **MP4 (H.264) directly** (MediaRecorder
 mime is MP4-first), so the save is instant — no transcode. Browsers that can't record MP4
@@ -51,6 +54,8 @@ key is client-safe by design. Set `STORAGE.ENABLE_QR:false` to fall back to loca
 derives the output/recording frame size, presenter fit, and on-screen fill. Default is
 **portrait** 1080×1920 (kiosk deployment): background cover-fills edge-to-edge, presenter
 cover-cropped to fill the tall frame. Camera capture stays landscape for a sharp matte.
+`LOCAL.PRESENTER_SCALE` (default **0.8**) pulls the presenter back to reduce the portrait
+cover-fit zoom (1 = full fit/most zoomed, lower = smaller + more background around them).
 
 ### Offline engine (free, on-device)
 
