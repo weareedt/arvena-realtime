@@ -11,9 +11,11 @@
 // or `bgImage`, we use that media instead of the procedural painter. That keeps
 // the per-session cost at zero while letting you swap in richer backplates later.
 
+import { CONFIG } from "../config.js";
+
 // ---- media-backed background (optional bgVideo / bgImage on a scenario) ------
 
-function mediaBackground(src, isVideo, fallback) {
+function mediaBackground(src, isVideo, fallback, offsetX = 0, offsetY = 0) {
   let el;
   let ready = false;
   let failed = false;   // file missing / decode error → use the procedural fallback
@@ -41,12 +43,18 @@ function mediaBackground(src, isVideo, fallback) {
         else { ctx.fillStyle = "#0A0A0A"; ctx.fillRect(0, 0, w, h); }
         return;
       }
-      // cover-fit
+      // cover-fit, with an optional pan (offsetX/Y in −1…1) to choose WHICH part
+      // of the source shows when it's cropped (e.g. a landscape clip in a portrait
+      // frame). 0 = centered; −1 = show the left/top edge, +1 = right/bottom.
       const mw = el.videoWidth || el.naturalWidth || w;
       const mh = el.videoHeight || el.naturalHeight || h;
       const scale = Math.max(w / mw, h / mh);
       const dw = mw * scale, dh = mh * scale;
-      ctx.drawImage(el, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      const ox = Math.max(-1, Math.min(1, offsetX));
+      const oy = Math.max(-1, Math.min(1, offsetY));
+      const dx = -(dw - w) / 2 - ox * (dw - w) / 2;
+      const dy = -(dh - h) / 2 - oy * (dh - h) / 2;
+      ctx.drawImage(el, dx, dy, dw, dh);
     },
     stop() { if (isVideo) { el.pause(); el.src = ""; } },
   };
@@ -518,14 +526,18 @@ export function createBackground(scenario) {
   // (shown while a clip loads, or permanently if the file is missing).
   const painter = (PAINTERS[scenario?.id] || studio)();
 
+  // Pan for cover-fit media — per-scenario override, else the global config value.
+  const offX = scenario?.bgOffsetX ?? CONFIG.LOCAL?.BG_OFFSET_X ?? 0;
+  const offY = scenario?.bgOffsetY ?? CONFIG.LOCAL?.BG_OFFSET_Y ?? 0;
+
   // A still image (PNG/JPG) can back a scenario on its own, OR sit between a
   // video and the painter as a fallback. Fallback chain: video → image → painter.
   const image = scenario?.bgImage
-    ? mediaBackground(scenario.bgImage, false, painter)
+    ? mediaBackground(scenario.bgImage, false, painter, offX, offY)
     : null;
   const fallback = image ? (ctx, w, h, t) => image.draw(ctx, w, h, t) : painter;
 
-  if (scenario?.bgVideo) return mediaBackground(scenario.bgVideo, true, fallback);
+  if (scenario?.bgVideo) return mediaBackground(scenario.bgVideo, true, fallback, offX, offY);
   if (image) return image;
   return { draw: painter };
 }

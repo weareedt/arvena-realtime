@@ -39,6 +39,12 @@ export const CONFIG = {
     // Extra zoom on the presenter: 1 = full fit (as before), lower pulls them
     // back (0.8 = 20% smaller). Back to 1 per request.
     PRESENTER_SCALE: 1,
+    // Pan a cover-fit background (video/image) when it's cropped — e.g. a
+    // landscape clip in a portrait frame. Range −1…1. 0 = centered; X: −1 shows
+    // the LEFT part, +1 the RIGHT. Y: −1 top, +1 bottom. Per-scenario override:
+    // add bgOffsetX/bgOffsetY to a scenario in scenarios.js.
+    BG_OFFSET_X: 0,
+    BG_OFFSET_Y: 0,
     FPS: 30,
     // Recording auto-stops (saves + shows the QR) after this many seconds.
     // 0 = unlimited. 60 = each recording capped at 1 minute.
