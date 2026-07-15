@@ -62,14 +62,12 @@ the main row).
 | `festival` | `festival-loop.mp4` | `festival` | ✅ |
 | `mountain` | `mountain-loop.mp4` | `mountain` | ✅ |
 | `klcc` | `klcc-loop.mp4` | `klcc` (KL night skyline) | ✅ |
-| `wartawan` | `wartawan-loop.mp4` | `wartawan` (press gala) | ❌ painter only |
 | `piala` | `piala.png` | reuses `stadium` | ✅ |
 | `studio` | `studio.png` | `studio` (news backdrop) | ✅ |
 
 `interactive` and `terjah` each accept **either** an MP4 (`<id>-loop.mp4`) or a
 still (`<id>.png`) — video preferred; both now ship an MP4. Each scenario falls
-back to its procedural painter until its file is present. Only `wartawan` still
-runs painter-only (no clip yet).
+back to its procedural painter until its file is present.
 
 ## Tip: render a loop once with Decart
 

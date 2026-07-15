@@ -22,13 +22,14 @@ export const SCENARIOS = [
     label: "Concert",
     primary: true,
     bgVideo: "assets/backgrounds/concert-loop.mp4",
+    bgVideoPortrait: "assets/backgrounds/concert-loop-portrait.mp4",
   },
   {
     id: "terjah",
     label: "Terjah",
     primary: true,
-    // Media coming: interactive-style — drop terjah-loop.mp4 or terjah.png.
     bgVideo: "assets/backgrounds/terjah-loop.mp4",
+    bgVideoPortrait: "assets/backgrounds/terjah-loop-portrait.mp4",
     bgImage: "assets/backgrounds/terjah.png",
   },
   {
@@ -36,6 +37,7 @@ export const SCENARIOS = [
     label: "Stadium",
     primary: true,
     bgVideo: "assets/backgrounds/stadium-loop.mp4",
+    bgVideoPortrait: "assets/backgrounds/stadium-loop-portrait.mp4",
   },
 
   // ---- SECONDARY scenarios (second row, smaller chips) ----------------------
@@ -60,11 +62,6 @@ export const SCENARIOS = [
     id: "klcc",
     label: "KLCC",
     bgVideo: "assets/backgrounds/klcc-loop.mp4",
-  },
-  {
-    id: "wartawan",
-    label: "Malam Wartawan",
-    bgVideo: "assets/backgrounds/wartawan-loop.mp4",
   },
   {
     id: "piala",

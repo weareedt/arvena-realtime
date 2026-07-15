@@ -412,93 +412,6 @@ function klcc() {
   };
 }
 
-function wartawan() {
-  let flashes = null;
-  return (ctx, w, h, t) => {
-    // dark gala backdrop
-    const bg = ctx.createLinearGradient(0, 0, 0, h);
-    bg.addColorStop(0, "#120a18");
-    bg.addColorStop(0.6, "#1e1226");
-    bg.addColorStop(1, "#0c0710");
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, w, h);
-
-    // step-and-repeat media wall (repeating brand marks on a panel)
-    const wallTop = h * 0.08, wallBot = h * 0.72;
-    ctx.fillStyle = "#191022";
-    ctx.fillRect(0, wallTop, w, wallBot - wallTop);
-    ctx.save();
-    ctx.globalAlpha = 0.5;
-    const cell = 108;
-    for (let y = wallTop + 34; y < wallBot; y += 62) {
-      for (let x = ((y / 62) % 2) * (cell / 2) + 20; x < w; x += cell) {
-        // small "ARVENA" wordmark tick + diamond, brand blue/red alternating
-        ctx.fillStyle = ((x + y) | 0) % 2 ? "#2D2DFF" : "#e8e8ec";
-        ctx.fillRect(x, y, 30, 4);
-        ctx.beginPath();
-        ctx.moveTo(x + 40, y + 2);
-        ctx.lineTo(x + 46, y - 4);
-        ctx.lineTo(x + 52, y + 2);
-        ctx.lineTo(x + 46, y + 8);
-        ctx.closePath();
-        ctx.fill();
-      }
-    }
-    ctx.restore();
-
-    // warm overhead spotlights sweeping the wall
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    for (let i = 0; i < 3; i++) {
-      const sx = w * (0.25 + 0.25 * i);
-      const sweep = Math.sin(t * 0.0009 + i * 2.1) * 0.35;
-      ctx.save();
-      ctx.translate(sx, -h * 0.05);
-      ctx.rotate(sweep);
-      const grad = ctx.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, "rgba(255,220,150,0.20)");
-      grad.addColorStop(0.7, "rgba(255,200,120,0.05)");
-      grad.addColorStop(1, "transparent");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(-w * 0.14, h);
-      ctx.lineTo(w * 0.14, h);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
-    ctx.restore();
-
-    // red-carpet glow at the foot of the wall
-    const carpet = ctx.createLinearGradient(0, wallBot, 0, h);
-    carpet.addColorStop(0, "rgba(180,30,45,0.35)");
-    carpet.addColorStop(1, "rgba(120,15,25,0.65)");
-    ctx.fillStyle = carpet;
-    ctx.fillRect(0, wallBot, w, h - wallBot);
-
-    // press camera flashes — brief popping white points along the wall
-    if (!flashes) flashes = makeParticles(26, () => ({
-      x: Math.random() * w, y: wallTop + Math.random() * (wallBot - wallTop) * 0.9,
-      next: Math.random() * 2200, on: 0,
-    }));
-    const dt = 16;
-    for (const f of flashes) {
-      f.next -= dt;
-      if (f.next <= 0) { f.on = 120; f.next = 600 + Math.random() * 2600; f.x = Math.random() * w; }
-      if (f.on > 0) {
-        const a = f.on / 120;
-        f.on -= dt;
-        const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 16);
-        g.addColorStop(0, `rgba(255,255,255,${0.9 * a})`);
-        g.addColorStop(1, "transparent");
-        ctx.fillStyle = g;
-        ctx.fillRect(f.x - 16, f.y - 16, 32, 32);
-      }
-    }
-  };
-}
-
 function studio() {
   return (ctx, w, h) => {
     const g = ctx.createRadialGradient(w / 2, h * 0.42, h * 0.1, w / 2, h * 0.5, h * 0.9);
@@ -517,7 +430,7 @@ function studio() {
 
 const PAINTERS = {
   flood, stadium, festival, mountain,
-  klcc, wartawan,
+  klcc,
   concert: festival, // Siti Nurhaliza concert reuses the festival stage painter
   piala: stadium,    // Piala Malaysia reuses the stadium painter
   studio,            // Baca Berita — news studio backdrop
