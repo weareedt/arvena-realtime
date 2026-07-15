@@ -1,60 +1,80 @@
-// Scenario catalog — the product is really a tuned prompt library (plan §6).
+// Scenario catalog — DATA, not UI, so a non-engineer can add/reorder scenarios.
 //
-// Each scenario is DATA, not UI, so a non-engineer can edit prompts without
-// touching the app. Prompt rules baked in here:
-//   • concrete about placement + scale ("knee-height", "background only")
-//   • every prompt PINS the presenter ("keep the presenter sharp and
-//     photorealistic, unchanged") so the edit happens AROUND them
-//   • "studio" is the panic/reset button → instant neutral via setPrompt()
+// The offline engine composites the presenter over a backplate; it does NOT
+// restyle. Only `id`, `label`, and the media (`bgVideo`/`bgImage`) are used —
+// each id also maps to a procedural painter in backgrounds.js (the fallback
+// when no media is present; unknown ids use the neutral `studio` painter).
 //
-// `mode` selects which model the scenario wants:
-//   "edit"    → lucy-2.1      (photoreal, edits around the real person)
-//   "restyle" → lucy-restyle-2 (full-frame stylization)
-
-const KEEP_PRESENTER =
-  "Keep the presenter sharp, photorealistic and unchanged in the foreground; " +
-  "apply all changes to the environment around them only.";
-
+// Scenarios flagged `primary: true` render in the TOP row (larger chips); the
+// rest render in a smaller second row. Order within each row follows this array.
 export const SCENARIOS = [
+  // ---- MAIN scenarios (top row) ---------------------------------------------
+  {
+    id: "interactive",
+    label: "Interactive",
+    primary: true,
+    bgVideo: "assets/backgrounds/interactive-loop.mp4",              // landscape
+    bgVideoPortrait: "assets/backgrounds/interactive-loop-portrait.mp4", // portrait
+    bgImage: "assets/backgrounds/interactive.png",
+  },
+  {
+    id: "concert",
+    label: "Concert",
+    primary: true,
+    bgVideo: "assets/backgrounds/concert-loop.mp4",
+  },
+  {
+    id: "terjah",
+    label: "Terjah",
+    primary: true,
+    // Media coming: interactive-style — drop terjah-loop.mp4 or terjah.png.
+    bgVideo: "assets/backgrounds/terjah-loop.mp4",
+    bgImage: "assets/backgrounds/terjah.png",
+  },
+  {
+    id: "stadium",
+    label: "Stadium",
+    primary: true,
+    bgVideo: "assets/backgrounds/stadium-loop.mp4",
+  },
+
+  // ---- SECONDARY scenarios (second row, smaller chips) ----------------------
+  // Video-only: the engine composites the presenter over bgVideo/bgImage (else a
+  // procedural painter in backgrounds.js). No prompt/mode/enhance needed.
   {
     id: "flood",
     label: "Flood",
-    mode: "restyle",
-    enhance: true,
-    prompt:
-      "Heavy urban flood news scene: brown turbid floodwater up to knee height across " +
-      "the ground, heavy rain, overcast storm sky, half-submerged cars and floating " +
-      "debris in the background, sandbags along a wall. " + KEEP_PRESENTER,
+    bgVideo: "assets/backgrounds/flood-loop.mp4",
   },
   {
-    id: "wildfire",
-    label: "Wildfire",
-    mode: "restyle",
-    enhance: true,
-    prompt:
-      "Wildfire evacuation scene: thick orange smoke haze, glowing embers drifting in " +
-      "the air, distant flames and burnt trees, flashing emergency-vehicle lights in the " +
-      "background, hazy low-visibility daylight. " + KEEP_PRESENTER,
+    id: "festival",
+    label: "Festival",
+    bgVideo: "assets/backgrounds/festival-loop.mp4",
   },
   {
-    id: "storm",
-    label: "Storm",
-    mode: "restyle",
-    enhance: true,
-    prompt:
-      "Hurricane / severe storm scene: violent wind bending palm trees, sideways rain, " +
-      "dark churning sky with lightning, flying debris and torn signage in the " +
-      "background, wet reflective pavement. " + KEEP_PRESENTER,
+    id: "mountain",
+    label: "Mountain",
+    bgVideo: "assets/backgrounds/mountain-loop.mp4",
+  },
+  {
+    id: "klcc",
+    label: "KLCC",
+    bgVideo: "assets/backgrounds/klcc-loop.mp4",
+  },
+  {
+    id: "wartawan",
+    label: "Malam Wartawan",
+    bgVideo: "assets/backgrounds/wartawan-loop.mp4",
+  },
+  {
+    id: "piala",
+    label: "Piala Malaysia",
+    bgImage: "assets/backgrounds/piala.png",
   },
   {
     id: "studio",
-    label: "Studio (reset)",
-    mode: "restyle",
-    enhance: false,
-    // Panic button: returns the presenter to a clean, neutral broadcast set.
-    prompt:
-      "Clean neutral broadcast news studio: plain dark grey seamless background, even " +
-      "soft studio lighting, no weather, no debris, no effects. " + KEEP_PRESENTER,
+    label: "Baca Berita",
+    bgImage: "assets/backgrounds/studio.png",
   },
 ];
 

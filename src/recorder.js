@@ -16,13 +16,18 @@ let audioStream = null;
 
 function pickMime() {
   if (typeof MediaRecorder === "undefined") return "";
+  // Prefer MP4 (H.264/AAC) so modern Chrome/Edge record a playable file DIRECTLY
+  // — no slow in-browser ffmpeg transcode. Fall back to WebM (then converted) on
+  // browsers that can't record MP4.
   const types = [
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4;codecs=h264,aac",
+    "video/mp4",
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
     "video/webm;codecs=vp9",
     "video/webm;codecs=vp8",
     "video/webm",
-    "video/mp4",
   ];
   return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
 }

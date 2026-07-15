@@ -22,59 +22,104 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="stage">
+  <!-- ===== Fullscreen simulation layer (background) ===== -->
+  <div class="sim-view">
+    <video id="output" autoplay playsinline muted></video>
+    <div id="output-placeholder" class="video-placeholder">
+      <span>OUTPUT IDLE</span>
+      <span class="small">Press START to generate</span>
+    </div>
+  </div>
 
-    <p class="eyebrow">EDT · ARVENA — PRODUCTION / BROADCAST</p>
-    <h1 class="stage-title">SIMULATION VIEW</h1>
+  <!-- ===== UI overlay, rendered on top of the simulation ===== -->
+  <div class="overlay">
 
-    <!-- ===== Picture-in-picture: big Decart output + raw-camera inset ===== -->
-    <div class="panel preview-panel">
-      <div class="titlebar">
-        <span class="win-name">ARVENA.OUT</span>
+    <header class="overlay-top">
+      <div class="brand">
+        <p class="eyebrow">EDT · ARVENA — PRODUCTION / BROADCAST</p>
+        <h1 class="stage-title">SIMULATION VIEW</h1>
+      </div>
+      <div class="overlay-top-right">
         <span class="rec" id="rec-indicator" hidden>● ON AIR</span>
-        <span class="dots"><i></i><i></i><i></i></span>
+        <button id="ui-toggle" class="fs-btn" aria-label="Toggle UI visibility">▢ HIDE UI</button>
+        <button id="fullscreen-btn" class="fs-btn" aria-label="Toggle fullscreen">⛶ FULLSCREEN</button>
       </div>
-      <div class="panel-body video-wrap">
-        <!-- Big: Decart edited feed -->
-        <video id="output" autoplay playsinline muted></video>
-        <div id="output-placeholder" class="video-placeholder">
-          <span>OUTPUT IDLE</span>
-          <span class="small">Press START to generate</span>
-        </div>
-        <div id="simulated-badge" class="simulated-badge" hidden>▓ SIMULATED — AI GENERATED ▓</div>
+    </header>
 
-        <!-- Small inset: raw camera (always-on monitor) -->
-        <div class="pip">
-          <div class="pip-titlebar"><span>CAMERA.IN</span></div>
-          <div class="pip-video">
-            <video id="pip-cam" autoplay playsinline muted></video>
-            <div id="pip-placeholder" class="pip-placeholder">NO CAMERA</div>
-          </div>
-        </div>
+    <div id="simulated-badge" class="simulated-badge" hidden>▓ SIMULATED — AI GENERATED ▓</div>
+
+    <!-- Small inset: raw camera (always-on monitor) -->
+    <div class="pip">
+      <div class="pip-titlebar"><span>CAMERA.IN</span></div>
+      <div class="pip-video">
+        <video id="pip-cam" autoplay playsinline muted></video>
+        <div id="pip-placeholder" class="pip-placeholder">NO CAMERA</div>
       </div>
     </div>
 
-    <!-- ===== Engine toggle: live AI (Decart) vs offline (free) ===== -->
-    <div id="engine-toggle" class="mode-toggle stage-scenarios"><!-- injected by JS --></div>
+    <div class="overlay-bottom">
+      <!-- Start / Stop -->
+      <div class="stage-actions">
+        <button id="go-live" class="btn-primary">START →</button>
+        <button id="end-session" class="btn-secondary" disabled>STOP</button>
+      </div>
 
-    <!-- ===== Start / Stop ===== -->
-    <div class="stage-actions">
-      <button id="go-live" class="btn-primary">START →</button>
-      <button id="end-session" class="btn-secondary" disabled>STOP</button>
+      <!-- Compact scenario chips -->
+      <div id="scenario-buttons" class="scenario-buttons stage-scenarios"><!-- injected by JS --></div>
+
+      <p id="status-line" class="status-line">Idle</p>
+
+      <footer class="console-footer">
+        <span>EDT · EXPERIENTIAL DESIGN TEAM</span>
+        <span class="muted">Synthetic media. Not real footage. Do not present as real news.</span>
+        <button id="dev-toggle" class="dev-toggle" aria-pressed="false">USAGE METER · OFF</button>
+      </footer>
     </div>
 
-    <!-- ===== Compact scenario chips ===== -->
-    <div id="scenario-buttons" class="scenario-buttons stage-scenarios"><!-- injected by JS --></div>
+  </div>
 
-    <p id="status-line" class="status-line">Idle</p>
+  <!-- ===== Recording timer (shown while recording, incl. clean view) ===== -->
+  <div id="rec-timer" class="rec-timer" hidden>
+    <span class="rec-dot">●</span> <span id="rec-time">0:00</span>
+  </div>
 
-    <footer class="console-footer">
-      <span>EDT · EXPERIENTIAL DESIGN TEAM</span>
-      <span class="muted">Synthetic media. Not real footage. Do not present as real news.</span>
-      <button id="dev-toggle" class="dev-toggle" aria-pressed="false">USAGE METER · OFF</button>
-    </footer>
+  <!-- ===== Loading overlay (segmentation model warm-up) ===== -->
+  <div id="loading-overlay" class="loading-overlay" hidden>
+    <div class="spinner"></div>
+    <p class="loading-text">LOADING SEGMENTATION MODEL</p>
+  </div>
 
-  </main>
+  <!-- ===== QR download modal (shown after STOP) ===== -->
+  <div id="qr-modal" class="qr-modal" hidden>
+    <div class="qr-card">
+      <div class="qr-titlebar">
+        <span>DOWNLOAD.MP4</span>
+        <button id="qr-close" class="qr-close" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Uploading state -->
+      <div id="qr-uploading" class="qr-body">
+        <div class="spinner"></div>
+        <p class="qr-msg">Uploading your video…</p>
+      </div>
+
+      <!-- Ready state: QR only -->
+      <div id="qr-ready" class="qr-body" hidden>
+        <h2 class="qr-title">SCAN TO DOWNLOAD</h2>
+        <div class="qr-tile"><canvas id="qr-canvas"></canvas></div>
+        <button id="qr-done" class="btn-primary">DONE</button>
+      </div>
+
+      <!-- Error state -->
+      <div id="qr-error" class="qr-body" hidden>
+        <p class="qr-msg qr-msg-error">Upload failed. Your local copy is already saved.</p>
+        <div class="qr-actions">
+          <button id="qr-retry" class="btn-primary">RETRY</button>
+          <button id="qr-dismiss" class="btn-secondary">DISMISS</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="src/main.js"></script>
 </body>

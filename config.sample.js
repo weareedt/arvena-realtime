@@ -60,6 +60,19 @@ export const CONFIG = {
   // Show the "SIMULATED — AI GENERATED" disclosure badge (plan §10). Keep true.
   SHOW_SIMULATED_BADGE: true,
 
+  // Scan-a-QR to download the recording. After STOP the MP4 is uploaded to public
+  // cloud storage and its public URL is shown as a QR the person scans on their
+  // phone. The browser uploads DIRECTLY to storage (Vercel functions cap bodies
+  // at ~4.5 MB); the Supabase anon key is client-safe by design (public bucket +
+  // an anon INSERT policy). Set ENABLE_QR false to only save locally.
+  STORAGE: {
+    ENABLE_QR: true,
+    PROVIDER: "supabase",
+    SUPABASE_URL: "https://YOUR_PROJECT.supabase.co",
+    SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_PUBLIC_KEY",
+    BUCKET: "recordings",                 // a PUBLIC bucket with an anon INSERT policy
+  },
+
   // Dev usage meter (visible only when the URL has ?dev=1). It's a LOCAL estimate
   // of generated seconds — the authoritative bill is in the Decart dashboard.
   // Set this to the per-second rate from the Decart pricing page to show an

@@ -1,74 +1,87 @@
 # ARVENA · Realtime Scenario Generator
 
-Put a live presenter "on location" — flood, wildfire, storm — **in real time**.
-The browser streams the webcam to Decart's Lucy realtime models, which edit the
-feed live and stream it back. An operator switches scenarios on the fly.
+Put a presenter "on location" — flood, stadium, festival, mountain — **in real
+time**. The presenter shows full-screen as a **SIMULATION VIEW** with the
+operator UI overlaid on top; an operator switches scenarios on the fly and the
+output auto-records to MP4.
+
+Runs **entirely in the browser, free, with no server** — matting cuts the
+presenter out on-device and composites them over a scenario background (a looping
+video, or a procedural fallback). No API key, no per-second cost, no time cap.
+
+> The Live AI (Decart) path — streaming the webcam to Decart's Lucy models for a
+> neural restyle — is retained in the codebase (`src/decart.js`,
+> `api/session.mjs`) but is **no longer wired to the UI**. See
+> [Re-enabling Decart](#re-enabling-decart-optional).
 
 Built inside the **EDT (Experiential Design Team)** brand system, as the
 **ARVENA** production/broadcast sub-brand. Vanilla static site + one serverless
 function — same stack as the sibling EDT projects, no build step.
 
-> ⚠️ **Synthetic media.** Every output frame is AI-generated and labelled
+> ⚠️ **Synthetic media.** The output is composited/AI-assisted and labelled
 > `SIMULATED — AI GENERATED`. Do not present output as real news. See
 > [Responsible use](#responsible-use).
 
 ---
 
-## How it works
+## How it works (offline engine)
 
 ```
-Browser  ──getUserMedia──►  Decart SDK  ──WebRTC──►  Decart Lucy models
-   │                              ▲                         (edited video back)
-   └──POST /api/session──►  serverless fn  ──►  holds DECART_API_KEY (server-side)
-                                              returns a connection credential
+webcam ──► RVM matting (TensorFlow.js/WebGL) ──► alpha matte
+              │                                       │
+              └── full-res webcam ──[ composite ]──◄──┘ over scenario background
+                                        │                (looping video or procedural)
+                                        └──► 16:9 output canvas → recorder
 ```
 
-- **Media path:** WebRTC, browser ⇄ Decart directly (low latency).
-- **Control/auth path:** `api/session.mjs` is the only thing that touches the
-  secret key. **The key never reaches the browser.**
+- Runs on-device; the RVM model (`assets/models/rvm-tfjs/`) is served same-origin
+  and **prewarms at boot** so the first START is instant.
+- The matte supplies only the **alpha**; the presenter's RGB is the full-res
+  webcam, and a frame snapshot is taken the same instant as the matte so the
+  cutout doesn't trail on fast motion.
+- Output is a fixed **16:9** frame: the background is full-bleed, the presenter is
+  fit-centered at the camera's aspect (no black bars, no stretch).
+- Falls back to MediaPipe `ImageSegmenter` if WebGL/TF.js can't load.
 
-## Models (verify current IDs at docs.platform.decart.ai/getting-started/models)
+## Flow
 
-| Mode in UI | Model ID | Use |
-| --- | --- | --- |
-| LUCY 2.1 · EDIT | `lucy-2.1` | Photoreal — adds the scenario *around* the real presenter (default) |
-| RESTYLE 2 · STYLE | `lucy-restyle-2` | Full-frame stylization |
-
-> Note: the older `lucy-edit` ID no longer exists; `lucy-2.1` now handles both
-> text editing and character reference in one model.
+START shows a "LOADING SEGMENTATION MODEL" overlay until the model is ready, then
+composites live and auto-starts recording on the first frame (mic audio +
+burned-in `SIMULATED — AI GENERATED` label). STOP transcodes WebM→MP4 in-browser
+(ffmpeg.wasm) and downloads it. A fullscreen button toggles native fullscreen.
 
 ---
 
 ## Run locally
 
-Requires the [Vercel CLI](https://vercel.com/docs/cli) so the static site and the
-`/api/session` function run together.
+The offline engine needs no key and no serverless function — any static server
+over `localhost` works (camera requires a secure context; `localhost` counts):
 
 ```bash
-# 1. client config (holds NO secrets)
-cp config.sample.js config.js
-
-# 2. the secret key — server-side only, for `vercel dev`
-echo "DECART_API_KEY=your-decart-key" > .env
-
-# 3. run
-vercel dev
+cp config.sample.js config.js   # client config (holds NO secrets)
+npx serve -l 5000               # or: python -m http.server 5000
 ```
 
-Open the printed URL, allow camera access, pick **Flood**, press **GO LIVE →**.
-
-> Camera + WebRTC require a secure context. `localhost` counts as secure, so
-> `vercel dev` is fine. A plain static file server won't run the `/api` function
-> or get camera in some browsers — use `vercel dev`.
+Open `http://localhost:5000`, allow camera access, pick a scenario, press
+**START →**.
 
 ## Deploy
 
-1. Push to a repo and import into Vercel (framework preset: **Other** — it's static).
-2. Add env var **`DECART_API_KEY`** in Project → Settings → Environment Variables.
-3. (Recommended) set **`ALLOWED_ORIGINS`** to your deployment origin(s),
-   comma-separated, so only your site can mint credentials.
+Push to a repo and import into Vercel (framework preset: **Other** — it's static).
+No env vars are required for the offline engine. (The `DECART_API_KEY` /
+`ALLOWED_ORIGINS` vars only matter if you re-enable the Decart path below.)
 
 ---
+
+## Scenarios & backgrounds
+
+Four scenarios live in [`src/scenarios.js`](src/scenarios.js) as plain data:
+**Flood, Stadium Pitch, Festival, Mountain** (default `flood`). Each is wired to a
+looping backplate at `assets/backgrounds/<id>-loop.mp4` via `bgVideo`, and **falls
+back to a procedural painter** in [`src/backgrounds.js`](src/backgrounds.js) until
+the clip is present. Add clips per the convention in
+[`assets/backgrounds/README.md`](assets/backgrounds/README.md) (1080p H.264, no
+audio, seamless loop, compressed).
 
 ## Configuration
 
@@ -76,17 +89,21 @@ Open the printed URL, allow camera access, pick **Flood**, press **GO LIVE →**
 
 | Key | Meaning |
 | --- | --- |
-| `SESSION_ENDPOINT` | Where to fetch the credential (`/api/session`) |
-| `MODELS.edit` / `MODELS.restyle` | Realtime model IDs |
-| `DEFAULT_SCENARIO` | Scenario loaded on go-live |
-| `MAX_SESSION_SECONDS` | Hard session time cap (cost control) |
-| `IDLE_TIMEOUT_SECONDS` | Auto-disconnect when idle (cost control) |
+| `DEFAULT_SCENARIO` | Scenario loaded on start (`flood`) |
+| `DEFAULT_ENGINE` | `"local"` (offline, the only engine in the UI) |
+| `AUTO_RECORD` | Auto-start recording on the first output frame |
 | `SHOW_SIMULATED_BADGE` | Disclosure badge on output (keep `true`) |
+| `LOCAL.*` | Offline engine: output `WIDTH`/`HEIGHT`/`FPS` (16:9), `MAX_SESSION_SECONDS` (0 = unlimited), `SEG_ENGINE` (`rvm`/`mediapipe`), `RVM_WORKING_WIDTH`, `RVM_DOWNSAMPLE`, `EDGE_FEATHER_PX` |
+| `MODELS.*`, `MAX_SESSION_SECONDS`, `PRICE_PER_SECOND_USD` | Used only by the dormant Decart path |
 
-Scenarios live in [`src/scenarios.js`](src/scenarios.js) as plain data — edit
-prompts there without touching app code.
+## Re-enabling Decart (optional)
 
-Server env vars: `DECART_API_KEY` (required), `ALLOWED_ORIGINS` (optional).
+The Live AI path is intact but unwired. To bring it back: restore an engine toggle
+(or set `DEFAULT_ENGINE = "decart"`) and route `goLive()` to `goLiveDecart()` in
+[`src/main.js`](src/main.js). It needs the serverless function (`vercel dev`
+locally) with `DECART_API_KEY` set, and `ALLOWED_ORIGINS` in production. **The key
+never reaches the browser** — `api/session.mjs` holds it and returns a connection
+credential. (Rotate the key first — it was exposed during development.)
 
 ---
 
@@ -112,25 +129,31 @@ also add real auth + per-user usage caps + key rotation.
 ## Project layout
 
 ```
-index.html            operator console markup (window-chrome panels)
-style.css             EDT/ARVENA tokens + window chrome + layout
+index.html            fullscreen simulation view + overlaid operator UI
+style.css             EDT/ARVENA tokens + fullscreen/overlay layout
 config.sample.js      client config template  →  copy to config.js
 vercel.json           security headers + camera permissions policy
 api/session.mjs       serverless: holds DECART_API_KEY, returns credential
 src/
-  main.js             orchestrator: idle → connecting → live state machine
+  main.js             orchestrator: idle → connecting → live state machine (both engines)
   decart.js           @decartai/sdk wrapper (start / setPrompt / stop)
-  scenarios.js        prompt catalog (Flood / Wildfire / Storm / Studio)
+  segment.js          OFFLINE engine: RVM matting (TF.js/WebGL) + MediaPipe fallback
+  backgrounds.js      procedural scenario backplates for the offline engine
+  scenarios.js        prompt catalog (Flood / Stadium Pitch / Festival / Mountain)
+  recorder.js         canvas-composite recording (burned-in badge + mic)
+  mp4.js              in-browser WebM→MP4 via ffmpeg.wasm (lazy-loaded)
   session.js          credential fetch + idle/time-cap guardrails
+  usage.js            dev usage meter (footer toggle / ?dev=1)
   ui.js               DOM helpers
+assets/models/rvm-tfjs/   RVM TF.js graph model (served same-origin)
 assets/favicon/       EDT brand favicon + PWA kit
 ```
 
 ## Not in this build (Phase 3 in the plan)
 
-Auth provider + user accounts, billing/usage persistence, recording/export with
-C2PA provenance, mobile/native SDK evaluation. The serverless function and
-time-cap logic leave clean seams for these.
+Auth provider + user accounts, billing/usage persistence, C2PA provenance on
+exports (the visible burned-in label ships today), mobile/native SDK evaluation.
+The serverless function and time-cap logic leave clean seams for these.
 
 See [`decart-realtime-scenario-plan.md`](decart-realtime-scenario-plan.md) for the
 full product/brand spec.
