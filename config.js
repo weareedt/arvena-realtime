@@ -27,12 +27,13 @@ export const CONFIG = {
   DEFAULT_ENGINE: "decart",
 
   // Offline (local segmentation) engine. No per-second cost, so MAX_SESSION_SECONDS
-  // here can be 0 (unlimited). WIDTH/HEIGHT/FPS drive the local camera capture.
+  // here is a UX/length cap, not a billing guard (0 = unlimited). WIDTH/HEIGHT/FPS
+  // drive the local camera capture.
   LOCAL: {
     WIDTH: 1280,
     HEIGHT: 720,
     FPS: 30,
-    MAX_SESSION_SECONDS: 0,
+    MAX_SESSION_SECONDS: 60, // auto-stop + save each recording at 1 min (0 = no cap)
     // Matting engine: "rvm" (Robust Video Matting via TensorFlow.js/WebGL — soft
     // edges + temporal coherence, best quality) | "mediapipe" (GPU fallback).
     // RVM auto-falls back to MediaPipe if WebGL is unavailable.
