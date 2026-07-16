@@ -141,6 +141,13 @@ function fmtWhen(d) {
 // ---- Rendering --------------------------------------------------------------
 
 function renderSummary() {
+  // Storage usage is admin-only — hidden until the admin password is entered.
+  if (!adminPassword) {
+    els.summary.style.display = "none";
+    els.summary.innerHTML = "";
+    return;
+  }
+  els.summary.style.display = "flex";
   const count = allClips.length;
   const total = allClips.reduce((sum, c) => sum + c.size, 0);
   const pct = Math.min(100, (total / FREE_TIER_BYTES) * 100);
@@ -188,10 +195,16 @@ function renderCard(clip) {
   const card = document.createElement("article");
   card.className = "card";
   card.dataset.path = clip.path;
+  // Admin-only controls (select checkbox + DELETE) are omitted entirely — not
+  // just hidden — until the admin password is entered.
+  const pick = adminPassword
+    ? `<label class="pick"><input type="checkbox" class="pick-box" ${selected.has(clip.path) ? "checked" : ""}></label>`
+    : "";
+  const del = adminPassword
+    ? `<button class="btn del-btn" data-path="${clip.path}">DELETE</button>`
+    : "";
   card.innerHTML = `
-    <label class="pick"${adminPassword ? "" : " hidden"}>
-      <input type="checkbox" class="pick-box" ${selected.has(clip.path) ? "checked" : ""}>
-    </label>
+    ${pick}
     <div class="thumb">
       <video preload="none" muted playsinline data-src="${url}#t=0.1"></video>
     </div>
@@ -205,7 +218,7 @@ function renderCard(clip) {
         <button class="btn dl dl-btn" data-url="${url}" data-name="${clip.name}">DOWNLOAD</button>
         <button class="btn qr-btn" data-url="${url}">QR</button>
         <button class="btn copy-btn" data-url="${url}">COPY URL</button>
-        <button class="btn del-btn"${adminPassword ? "" : " hidden"} data-path="${clip.path}">DELETE</button>
+        ${del}
       </div>
     </div>`;
   return card;
@@ -261,7 +274,8 @@ function toggleAdmin() {
     sessionStorage.setItem("arvena_admin_pw", pw);
   }
   refreshAdminUi();
-  renderMonths(); // re-render to show/hide delete controls
+  renderSummary();  // show/hide storage usage with admin state
+  renderMonths();   // re-render to show/hide delete controls
 }
 
 async function deletePaths(paths) {
