@@ -192,6 +192,7 @@ async function startScene() {
       engine: CONFIG.LOCAL?.SEG_ENGINE,
       workingWidth: CONFIG.LOCAL?.RVM_WORKING_WIDTH,
       downsampleRatio: CONFIG.LOCAL?.RVM_DOWNSAMPLE,
+      maxInferenceFps: CONFIG.LOCAL?.INFERENCE_FPS,
       scenarioId: state.scenarioId,
       onLocalStream: ui.showLocalStream,
       onError: (err) => ui.setStatus("Error: " + (err?.message || err), "error"),

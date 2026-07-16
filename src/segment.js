@@ -36,6 +36,68 @@ const DEFAULT_RVM_MODEL = "assets/models/rvm-tfjs/model.json";
 // edge / less halo but eats fine hair; ~0.1–0.2 is a good range.
 const ALPHA_EDGE_LO = 0.12;
 
+// ---- Adaptive performance tier ----------------------------------------------
+// The RVM model runs every frame of the live-preview-from-boot, so on a phone or
+// an integrated-GPU laptop it pegs the GPU the whole time and the page becomes
+// unusable. We auto-detect a coarse device tier and pick a lighter inference
+// resolution / downsample / frame-rate for weaker hardware. Any of these can be
+// overridden by an explicit NUMBER in CONFIG.LOCAL (RVM_WORKING_WIDTH /
+// RVM_DOWNSAMPLE / INFERENCE_FPS); leave them "auto" (or null) to adapt.
+//
+// workingWidth   = RVM inference long-side px (dominant cost — ~quadratic).
+// downsampleRatio= RVM internal downsample (lower = cheaper, coarser matte).
+// inferenceFps   = cap on how often the model runs (display still animates at
+//                  full rAF; only the person cutout refreshes at this rate).
+const PERF_PRESETS = {
+  low:  { workingWidth: 256, downsampleRatio: 0.4, inferenceFps: 15 }, // phones, weak tablets
+  mid:  { workingWidth: 384, downsampleRatio: 0.5, inferenceFps: 24 }, // integrated-GPU laptops
+  high: { workingWidth: 512, downsampleRatio: 0.6, inferenceFps: 30 }, // discrete-GPU desktops
+};
+
+let cachedTier = null;
+function detectPerfTier() {
+  if (cachedTier) return cachedTier;
+  let tier = "mid";
+  try {
+    const ua = navigator.userAgent || "";
+    const isMobile =
+      /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle/i.test(ua) ||
+      (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua)); // iPadOS reports as Mac
+    const cores = navigator.hardwareConcurrency || 4;
+    const mem = navigator.deviceMemory || 4; // GB (Chromium only; undefined elsewhere)
+
+    // Sniff the GPU renderer string to catch integrated graphics.
+    let renderer = "";
+    try {
+      const c = document.createElement("canvas");
+      const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+      const ext = gl && gl.getExtension("WEBGL_debug_renderer_info");
+      if (ext) renderer = String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || "");
+    } catch { /* ignore */ }
+    const integratedGpu = /Mali|Adreno|PowerVR|Apple GPU|Intel|UHD|HD Graphics|Iris|Microsoft Basic/i.test(renderer);
+    const discreteGpu = /NVIDIA|GeForce|RTX|GTX|Radeon|RX \d|AMD/i.test(renderer);
+
+    if (isMobile || cores <= 4 || mem <= 4) tier = "low";
+    else if (discreteGpu && cores >= 8 && !integratedGpu) tier = "high";
+    else tier = "mid"; // integrated-GPU laptops land here
+  } catch { tier = "mid"; }
+  cachedTier = tier;
+  console.info(`[ARVENA] performance tier: ${tier}`, PERF_PRESETS[tier]);
+  return cachedTier;
+}
+
+// Merge explicit numeric overrides over the auto-detected tier preset. Treats
+// "auto", null, undefined and non-positive numbers as "use the preset".
+function resolvePerf({ workingWidth, downsampleRatio, maxInferenceFps } = {}) {
+  const p = PERF_PRESETS[detectPerfTier()];
+  const num = (v, d) => (typeof v === "number" && v > 0 ? v : d);
+  return {
+    workingWidth: num(workingWidth, p.workingWidth),
+    downsampleRatio: num(downsampleRatio, p.downsampleRatio),
+    maxInferenceFps: num(maxInferenceFps, p.inferenceFps),
+  };
+}
+
 export function isSupported() {
   return !!(navigator.mediaDevices?.getUserMedia && HTMLCanvasElement.prototype.captureStream);
 }
@@ -100,7 +162,10 @@ async function warmupRvm(tf, model, workingWidth, downsample) {
 
 // Preload + compile the RVM model without opening the camera. Call this when the
 // operator selects the offline engine so the wait overlaps with their UI use.
-export async function prewarm({ workingWidth = 512, downsampleRatio = 1.0, modelUrl = DEFAULT_RVM_MODEL } = {}) {
+export async function prewarm({ workingWidth, downsampleRatio, modelUrl = DEFAULT_RVM_MODEL } = {}) {
+  // Compile at the same resolution the live engine will actually run, so START
+  // doesn't trigger a second shader compile.
+  ({ workingWidth, downsampleRatio } = resolvePerf({ workingWidth, downsampleRatio }));
   try {
     const tf = await ensureWebglTf();
     const model = await getRvmModel(tf, modelUrl);
@@ -304,7 +369,7 @@ async function createMediapipeMatter() {
 export async function startSegmentation(opts) {
   const {
     width = 1280, height = 720, fps = 30, scenarioId, onLocalStream, onError,
-    engine = "rvm", workingWidth = 512, downsampleRatio = 0.5, modelUrl = DEFAULT_RVM_MODEL,
+    engine = "rvm", modelUrl = DEFAULT_RVM_MODEL,
     // Output frame size (the composited canvas / recording). Defaults to the
     // capture size, but can differ — e.g. a PORTRAIT 1080×1920 output composited
     // from a landscape webcam capture. presenterFit: "contain" = fit the whole
@@ -314,6 +379,14 @@ export async function startSegmentation(opts) {
     outWidth, outHeight, presenterFit = "contain", presenterScale = 1,
   } = opts;
   if (!isSupported()) throw new Error("This browser can't run local segmentation.");
+
+  // Resolve inference resolution / downsample / rate from the device tier, unless
+  // config passed explicit numeric overrides. This is what keeps weak GPUs usable.
+  const { workingWidth, downsampleRatio, maxInferenceFps } = resolvePerf({
+    workingWidth: opts.workingWidth,
+    downsampleRatio: opts.downsampleRatio,
+    maxInferenceFps: opts.maxInferenceFps,
+  });
 
   // 1) camera
   let camStream;
@@ -396,19 +469,36 @@ export async function startSegmentation(opts) {
   }
 
   // 4) frame pump
+  // Inference (the GPU-heavy matte) is capped to maxInferenceFps; the background
+  // still animates and composites every rAF, and the LAST person cutout is reused
+  // between inferences. This decouples display smoothness from model cost, so a
+  // weak GPU runs the model far less often instead of pegging at 100%.
+  const minInferenceMs = maxInferenceFps > 0 ? 1000 / maxInferenceFps : 0;
   const start = performance.now();
   let running = true;
   let raf = 0;
+  let lastInference = -Infinity;
+  let haveMatte = false;
+  let inferring = false;
   async function pump() {
     if (!running) return;
     if (video.readyState >= 2) {
       try {
-        await matter.toPersonCanvas(video, personCanvas, pctx, feather);
+        const now = performance.now();
+        // Run the model only when it's time AND a previous inference isn't still
+        // in flight (each inference is async; never queue a second one).
+        if (!inferring && (!haveMatte || now - lastInference >= minInferenceMs)) {
+          inferring = true;
+          lastInference = now; // measure period start-to-start = true fps cap
+          matter.toPersonCanvas(video, personCanvas, pctx, feather)
+            .then(() => { haveMatte = true; })
+            .catch((err) => onError?.(err))
+            .finally(() => { inferring = false; });
+        }
         if (!running) return;
         ctx.clearRect(0, 0, outW, outH);
         bg.draw(ctx, outW, outH, performance.now() - start);   // full-bleed background
-        ctx.drawImage(personCanvas, fitX, fitY, fitW, fitH);   // presenter, fit + centered
-
+        if (haveMatte) ctx.drawImage(personCanvas, fitX, fitY, fitW, fitH); // last presenter cutout
       } catch (err) { onError?.(err); }
     }
     raf = requestAnimationFrame(pump);

@@ -37,11 +37,21 @@ export const CONFIG = {
     // edges + temporal coherence, best quality) | "mediapipe" (GPU fallback).
     // RVM auto-falls back to MediaPipe if WebGL is unavailable.
     SEG_ENGINE: "rvm",
+    // Performance auto-tunes to the device by default: "auto" lets the engine
+    // pick RVM working width / downsample / inference rate from a detected tier
+    // (phones + integrated-GPU laptops get much lighter settings so the page
+    // stays usable; discrete-GPU desktops keep full quality). Set any of these to
+    // an explicit NUMBER to override the auto value.
+    //
     // RVM inference resolution (long side, px). Lower = faster, higher = sharper.
-    RVM_WORKING_WIDTH: 512,
+    RVM_WORKING_WIDTH: "auto", // auto: low 256 / mid 384 / high 512
     // RVM internal downsample ratio (0.25–1). Higher = sharper matte (less jagged),
-    // more GPU cost. 1.0 = full working-res matte.
-    RVM_DOWNSAMPLE: 1.0,
+    // more GPU cost.
+    RVM_DOWNSAMPLE: "auto",    // auto: low 0.4 / mid 0.5 / high 0.6
+    // Cap on how often the matting model runs (frames/sec). The background still
+    // animates + composites at full frame-rate; only the person cutout refreshes
+    // at this rate. Lower = far less sustained GPU load on weak hardware.
+    INFERENCE_FPS: "auto",     // auto: low 15 / mid 24 / high 30
     // Edge feather in px. RVM's matte is already soft (0 ideal). undefined lets
     // the engine pick (0 for RVM, a touch for MediaPipe).
     EDGE_FEATHER_PX: undefined,
