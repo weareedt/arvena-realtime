@@ -68,9 +68,9 @@ export const CONFIG = {
   STORAGE: {
     ENABLE_QR: true,
     PROVIDER: "supabase",
-    SUPABASE_URL: "https://YOUR_PROJECT.supabase.co",
-    SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_PUBLIC_KEY",
-    BUCKET: "recordings",                 // a PUBLIC bucket with an anon INSERT policy
+    SUPABASE_URL: "https://ljntfottlgcdnmflhiop.supabase.co",
+    SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqbnRmb3R0bGdjZG5tZmxoaW9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1OTM4NDEsImV4cCI6MjA5NzE2OTg0MX0.Fu_tluL9ebLe7012X2ffAsXdfRaHfjOfodHmri8Xf20",
+    BUCKET: "ArvenaLapor",                 // a PUBLIC bucket with anon INSERT + SELECT(list) policies
   },
 
   // Dev usage meter (visible only when the URL has ?dev=1). It's a LOCAL estimate

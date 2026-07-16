@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2DFF">
+  <title>ARVENA · Video Dashboard — EDT</title>
+  <meta name="description" content="Browse, preview, download and prune recorded ARVENA clips stored in Supabase.">
+
+  <!-- Favicon (EDT brand) -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon.svg">
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon/favicon-96x96.png">
+  <link rel="icon" href="assets/favicon/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png">
+
+  <!-- Brand fonts: Dela Gothic One (display) + Space Grotesk (body/UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Reuse the brand tokens (:root vars, fonts) from the main app. -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Dashboard-specific layout. The kiosk style.css locks body to
+       overflow:hidden; this is a scrolling document, so override here. -->
+  <style>
+    html, body { overflow: auto; height: auto; min-height: 100%; }
+    body { padding: 0; }
+
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 20px 80px; }
+
+    /* ---- Header / toolbar ---- */
+    .topbar {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      padding: 14px 16px; border: var(--border); background: var(--edt-surface);
+      position: sticky; top: 0; z-index: 5;
+    }
+    .brand { font-family: var(--font-display); font-size: 20px; letter-spacing: 0.5px; }
+    .brand .accent { color: var(--edt-blue); }
+    .spacer { flex: 1 1 auto; }
+
+    .btn {
+      font-family: var(--font-body); font-weight: 600; font-size: 12px;
+      letter-spacing: 0.5px; text-transform: uppercase; text-decoration: none;
+      color: var(--edt-white); background: transparent; border: var(--border);
+      padding: 8px 12px; cursor: pointer; display: inline-flex; align-items: center;
+      transition: background .12s, color .12s;
+    }
+    .btn:hover { background: var(--edt-white); color: var(--edt-black); }
+    .btn:disabled { opacity: .5; cursor: default; }
+    .btn.dl { background: var(--edt-blue); border-color: var(--edt-blue); }
+    .btn.dl:hover { background: var(--edt-blue-hover); border-color: var(--edt-blue-hover); color: var(--edt-white); }
+    #admin-btn.on { background: var(--arvena-red); border-color: var(--arvena-red); }
+    .del-btn { border-color: var(--arvena-red); color: var(--arvena-red); }
+    .del-btn:hover { background: var(--arvena-red); color: var(--edt-white); }
+
+    /* ---- Summary strip ---- */
+    #summary { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; margin: 20px 0; }
+    .stat { display: flex; flex-direction: column; }
+    .stat-num { font-family: var(--font-display); font-size: 26px; line-height: 1; }
+    .stat-lbl { color: var(--edt-grey); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+    .usage { flex: 1 1 240px; min-width: 200px; }
+    .usage-track { height: 10px; border: var(--border); background: var(--edt-black); }
+    .usage-fill { height: 100%; background: var(--edt-blue); }
+    .usage-fill.warn { background: var(--arvena-red); }
+    .usage-lbl { display: block; margin-top: 6px; color: var(--edt-grey); font-size: 11px; }
+
+    #status { min-height: 18px; margin: 8px 0 16px; color: var(--edt-grey); font-size: 13px; }
+    #status.error { color: var(--arvena-red); }
+
+    /* ---- Month sections + grid ---- */
+    .month { margin-bottom: 34px; }
+    .month-title {
+      font-family: var(--font-display); font-size: 16px; letter-spacing: 0.5px;
+      border-bottom: var(--border); padding-bottom: 8px; margin-bottom: 16px;
+      display: flex; align-items: baseline; gap: 12px;
+    }
+    .month-meta { color: var(--edt-grey); font-size: 12px; font-family: var(--font-body); font-weight: 400; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+
+    .card { border: var(--border); background: var(--edt-surface); position: relative; display: flex; flex-direction: column; }
+    .thumb { aspect-ratio: 9 / 16; background: var(--edt-black); }
+    .thumb video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+    .card-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .chip {
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--edt-blue); border: 1px solid var(--edt-blue); padding: 2px 7px;
+    }
+    .when { color: var(--edt-grey); font-size: 11px; }
+    .card-size { color: var(--edt-grey); font-size: 12px; }
+    .card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+    .card-actions .btn { padding: 6px 8px; font-size: 10px; }
+
+    .pick { position: absolute; top: 8px; left: 8px; z-index: 2; background: var(--edt-black); border: var(--border); padding: 4px; line-height: 0; }
+    .pick input { width: 16px; height: 16px; accent-color: var(--arvena-red); cursor: pointer; }
+
+    .empty { color: var(--edt-grey); padding: 40px 0; text-align: center; }
+
+    /* ---- Bulk action bar ---- */
+    #bulkbar {
+      position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; z-index: 6;
+      display: flex; align-items: center; gap: 14px;
+      background: var(--edt-surface); border: var(--border); padding: 10px 16px;
+    }
+    #bulk-count { font-family: var(--font-display); font-size: 18px; }
+
+    /* ---- QR modal ---- */
+    .qr-modal {
+      position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.82); padding: 20px;
+    }
+    .qr-card { background: var(--edt-surface); border: var(--border); max-width: 340px; width: 100%; }
+    .qr-titlebar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-bottom: var(--border);
+      font-family: var(--font-display); font-size: 13px; letter-spacing: 0.5px;
+    }
+    .qr-close { background: transparent; border: none; color: var(--edt-white); font-size: 16px; cursor: pointer; }
+    .qr-body { padding: 20px; text-align: center; }
+    .qr-title { font-family: var(--font-display); font-size: 15px; margin-bottom: 14px; }
+    .qr-tile { display: inline-block; background: #fff; padding: 10px; }
+    #qr-url { display: block; margin-top: 14px; color: var(--edt-grey); font-size: 11px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <span class="brand"><span class="accent">ARVENA</span> · VIDEO DASHBOARD</span>
+      <span class="spacer"></span>
+      <button id="refresh-btn" class="btn">REFRESH</button>
+      <button id="admin-btn" class="btn">ADMIN</button>
+    </div>
+
+    <div id="summary"></div>
+    <div id="status"></div>
+    <div id="months"></div>
+  </div>
+
+  <!-- Bulk delete bar (admin, when clips are selected) -->
+  <div id="bulkbar" hidden>
+    <span><span id="bulk-count">0</span> selected</span>
+    <button id="bulk-delete" class="btn del-btn">DELETE SELECTED</button>
+  </div>
+
+  <!-- QR modal -->
+  <div id="qr-modal" class="qr-modal" hidden>
+    <div class="qr-card">
+      <div class="qr-titlebar">
+        <span>DOWNLOAD.MP4</span>
+        <button id="qr-close" class="qr-close" aria-label="Close">✕</button>
+      </div>
+      <div class="qr-body">
+        <h2 class="qr-title">SCAN TO DOWNLOAD</h2>
+        <div class="qr-tile"><canvas id="qr-canvas"></canvas></div>
+        <span id="qr-url"></span>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/dashboard.js"></script>
+</body>
+</html>
