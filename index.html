@@ -103,11 +103,15 @@
         <p class="qr-msg">Uploading your video…</p>
       </div>
 
-      <!-- Ready state: QR only -->
+      <!-- Ready state: QR (scan from another device) + a direct download button
+           (the person on THIS phone can't scan the QR shown on it). -->
       <div id="qr-ready" class="qr-body" hidden>
-        <h2 class="qr-title">SCAN TO DOWNLOAD</h2>
+        <h2 class="qr-title">SCAN OR DOWNLOAD</h2>
         <div class="qr-tile"><canvas id="qr-canvas"></canvas></div>
-        <button id="qr-done" class="btn-primary">DONE</button>
+        <div class="qr-actions">
+          <a id="qr-download" class="btn-primary" download>DOWNLOAD</a>
+          <button id="qr-done" class="btn-secondary">DONE</button>
+        </div>
       </div>
 
       <!-- Error state -->

@@ -31,6 +31,7 @@ export const els = {
   qrError: document.getElementById("qr-error"),
   qrCanvas: document.getElementById("qr-canvas"),
   qrClose: document.getElementById("qr-close"),
+  qrDownload: document.getElementById("qr-download"),
   qrDone: document.getElementById("qr-done"),
   qrRetry: document.getElementById("qr-retry"),
   qrDismiss: document.getElementById("qr-dismiss"),
@@ -51,9 +52,15 @@ export function showQrUploading() {
   qrShowState("uploading");
 }
 
-/** Modal showing the QR for `url` (scan-only — no link text). */
+/** Modal showing the QR for `url` plus a direct DOWNLOAD button. The QR encodes
+ *  the plain URL (scan from another device to open it); the button uses the
+ *  `?download` variant so Supabase serves it as an attachment — the reliable way
+ *  to save on the SAME phone, where the QR is useless. */
 export async function showQrReady(url) {
   qrShowState("ready");
+  if (els.qrDownload) {
+    els.qrDownload.href = url + (url.includes("?") ? "&" : "?") + "download";
+  }
   try {
     if (els.qrCanvas) await renderQR(els.qrCanvas, url, 240);
   } catch (err) {

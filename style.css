@@ -297,6 +297,9 @@ body.live-recording #end-session {
 }
 .qr-msg-error { color: #ff5a5a; }
 .qr-actions { display: flex; gap: 12px; }
+/* The DOWNLOAD action is an <a> (needs a real href to save the file), so reset
+   link styling and let it sit like the button next to it. */
+.qr-actions a.btn-primary { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 
 /* ============================================================
    Window-chrome panel
