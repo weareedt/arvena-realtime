@@ -53,14 +53,11 @@ export function showQrUploading() {
 }
 
 /** Modal showing the QR for `url` plus a direct DOWNLOAD button. The QR encodes
- *  the plain URL (scan from another device to open it); the button uses the
- *  `?download` variant so Supabase serves it as an attachment — the reliable way
- *  to save on the SAME phone, where the QR is useless. */
+ *  the plain URL (scan from another device to open it); the DOWNLOAD button saves
+ *  the in-memory clip locally (wired in main.js) — the reliable way to save on the
+ *  SAME phone, where the QR is useless. */
 export async function showQrReady(url) {
   qrShowState("ready");
-  if (els.qrDownload) {
-    els.qrDownload.href = url + (url.includes("?") ? "&" : "?") + "download";
-  }
   try {
     if (els.qrCanvas) await renderQR(els.qrCanvas, url, 240);
   } catch (err) {

@@ -352,9 +352,29 @@ async function saveRecording() {
   await offerQrDownload(mp4Blob, name);
 }
 
+// Save the recorded clip to the user's device WITHOUT navigating the page. A
+// cross-origin download link would unload the tab and kill the live camera/scene,
+// so instead: on a touch device use the native share sheet (Save Video →
+// Photos/Files), else a same-origin blob download (recorder.download). Both keep
+// the tab alive.
+async function saveClip(blob, name) {
+  const preferShare = (navigator.maxTouchPoints || 0) > 0; // phones/tablets
+  try {
+    const file = new File([blob], `${name}.mp4`, { type: blob.type || "video/mp4" });
+    if (preferShare && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: name });
+      return;
+    }
+  } catch (err) {
+    if (err?.name === "AbortError") return; // user dismissed the share sheet
+    // any other share failure → fall through to the blob download
+  }
+  recorder.download(blob, name); // same-origin blob: URL, no navigation
+}
+
 // Upload the recording to cloud storage and show a scan-to-download QR. Skipped
 // entirely when storage isn't configured — the app just keeps the local copy.
-let lastUpload = null; // { blob, name } for the Retry button
+let lastUpload = null; // { blob, name } for the Retry / Download buttons
 async function offerQrDownload(blob, name) {
   if (!upload.isConfigured()) return;
   lastUpload = { blob, name };
@@ -437,6 +457,9 @@ function init() {
 
   // QR download modal controls.
   ui.els.qrClose?.addEventListener("click", ui.hideQrModal);
+  ui.els.qrDownload?.addEventListener("click", () => {
+    if (lastUpload) saveClip(lastUpload.blob, lastUpload.name);
+  });
   ui.els.qrDone?.addEventListener("click", ui.hideQrModal);
   ui.els.qrDismiss?.addEventListener("click", ui.hideQrModal);
   ui.els.qrRetry?.addEventListener("click", () => {
