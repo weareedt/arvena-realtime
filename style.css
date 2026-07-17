@@ -133,7 +133,6 @@ body.live-recording .pip,
 body.live-recording #simulated-badge,
 body.live-recording .stage-scenarios,
 body.live-recording #status-line,
-body.live-recording .console-footer,
 body.live-recording #go-live { display: none; }
 /* Keep the control bar pinned to the bottom (the hidden top bar would otherwise
    let it float up) and drop its scrim gradient so ONLY the STOP button shows. */
@@ -588,24 +587,6 @@ body.live-recording #end-session {
 .status-line.ok { color: var(--edt-blue); }
 
 /* ============================================================
-   Footer
-   ============================================================ */
-.console-footer {
-  width: 100%;
-  margin-top: auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding-top: 8px;            /* was 24px — pull the footer text down toward the edge */
-  font: 500 10px/1.35 var(--font-body);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--edt-white);
-}
-
-/* ============================================================
    Dev usage meter (only injected with ?dev=1)
    ============================================================ */
 .dev-usage {
@@ -631,25 +612,6 @@ body.live-recording #end-session {
 }
 .dev-reset { margin-top: 6px; padding: 9px 12px; font-size: 11px; }
 
-/* Footer toggle for the dev usage meter */
-.dev-toggle {
-  margin-left: auto;
-  font: 600 11px/1 var(--font-body);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--edt-grey);
-  background: transparent;
-  border: 1px solid var(--edt-grey);
-  padding: 7px 12px;
-  cursor: pointer;
-  transition: color 0.12s, border-color 0.12s, background 0.12s;
-}
-.dev-toggle:hover { color: var(--edt-white); border-color: var(--edt-white); }
-.dev-toggle.on {
-  color: var(--edt-white);
-  border-color: var(--edt-blue);
-  background: var(--edt-blue);
-}
 .dev-note {
   margin-top: 2px;
   font: 400 10px/1.4 var(--font-body);

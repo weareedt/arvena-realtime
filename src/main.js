@@ -447,7 +447,6 @@ function init() {
 
   ui.els.goLive.addEventListener("click", beginRecording);
   ui.els.endSession.addEventListener("click", () => stopRecording());
-  ui.els.devToggle.addEventListener("click", usage.toggle);
   ui.els.fullscreenBtn?.addEventListener("click", toggleFullscreen);
   document.addEventListener("fullscreenchange", syncFullscreenLabel);
   ui.els.uiToggle?.addEventListener("click", toggleUI);

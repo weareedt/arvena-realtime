@@ -16,7 +16,6 @@ export const els = {
   recordBtn: document.getElementById("record-btn"), // removed from DOM → null
   endSession: document.getElementById("end-session"),
   statusLine: document.getElementById("status-line"),
-  devToggle: document.getElementById("dev-toggle"),
   fullscreenBtn: document.getElementById("fullscreen-btn"),
   uiToggle: document.getElementById("ui-toggle"),
   loadingOverlay: document.getElementById("loading-overlay"),
