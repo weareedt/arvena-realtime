@@ -61,6 +61,14 @@ export const CONFIG = {
     // from being composited in too (the presenter, being closest to camera,
     // is normally the largest figure in frame). Set false to matte in everyone.
     ISOLATE_LARGEST_PERSON: true,
+    // RVM edge choke (0-1, default 0.08 in segment.js): alpha below this is
+    // dropped to remove background-bleed halo. Dark hair against a dark
+    // background is a low-contrast case where the model's real alpha
+    // confidence is already low, so a high choke clips hair first — lower
+    // this (e.g. 0.05) if hair is disappearing; raise it (e.g. 0.12) if you
+    // see a light halo/fringe around the presenter instead. undefined = use
+    // the segment.js default.
+    ALPHA_EDGE_LO: undefined,
   },
 
   // Cost & responsible-use guardrails (plan §8). Tune freely.

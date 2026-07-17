@@ -194,6 +194,7 @@ async function startScene() {
       downsampleRatio: CONFIG.LOCAL?.RVM_DOWNSAMPLE,
       maxInferenceFps: CONFIG.LOCAL?.INFERENCE_FPS,
       isolateLargestPerson: CONFIG.LOCAL?.ISOLATE_LARGEST_PERSON,
+      alphaEdgeLo: CONFIG.LOCAL?.ALPHA_EDGE_LO,
       scenarioId: state.scenarioId,
       onLocalStream: ui.showLocalStream,
       onError: (err) => ui.setStatus("Error: " + (err?.message || err), "error"),

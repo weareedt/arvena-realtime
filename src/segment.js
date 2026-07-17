@@ -33,14 +33,26 @@ const DEFAULT_RVM_MODEL = "assets/models/rvm-tfjs/model.json";
 // Alpha-matte edge choke (0–1): RVM alpha below this is forced to 0 and the
 // remaining range is rescaled to 0..1. This trims the faint translucent rim that
 // otherwise bleeds the real background through as a light halo. Higher = tighter
-// edge / less halo but eats fine hair; ~0.1–0.2 is a good range.
-const ALPHA_EDGE_LO = 0.12;
+// edge / less halo but eats fine hair — dark hair against a dark background is
+// exactly the low-contrast case where the model's real alpha confidence is
+// already low, so a high choke clips it first. ~0.06–0.15 is the usable range;
+// lower it (CONFIG.LOCAL.ALPHA_EDGE_LO) if hair is disappearing, raise it if you
+// see background bleeding through as a halo around the presenter.
+const ALPHA_EDGE_LO = 0.08;
 
 // Alpha level (0-255) above which a pixel counts as "person" for connected-
 // component purposes. RVM's choked alpha is exactly 0 below ALPHA_EDGE_LO, so
 // 0 is the natural cut there; a small positive value also absorbs MediaPipe's
 // near-zero background noise.
 const BLOB_ALPHA_THRESHOLD = 8;
+
+// Dilation radius (working-resolution px) used ONLY to decide connectivity for
+// the largest-blob isolation below — bridges small gaps (e.g. a faint hair wisp
+// whose alpha dips under BLOB_ALPHA_THRESHOLD for a pixel or two) so it stays
+// grouped with the main body blob instead of being read as a separate island
+// and dropped. The kept/dropped decision still only touches ORIGINAL alpha
+// values, so this can't pull in a genuinely separate person a few px away.
+const BLOB_DILATE_RADIUS = 2;
 
 // ---- Largest-blob isolation --------------------------------------------------
 // RVM/MediaPipe matte ANY person in frame, not just the presenter — if a crowd
@@ -53,27 +65,54 @@ const BLOB_ALPHA_THRESHOLD = 8;
 function createBlobIsolator() {
   let label = new Int32Array(0);
   let stack = new Int32Array(0);
+  let fgA = new Uint8Array(0);
+  let fgB = new Uint8Array(0);
   let cap = 0;
   return function isolateLargestBlob(data, w, h) {
     const n = w * h;
-    if (cap !== n) { label = new Int32Array(n); stack = new Int32Array(n); cap = n; }
+    if (cap !== n) {
+      label = new Int32Array(n); stack = new Int32Array(n);
+      fgA = new Uint8Array(n); fgB = new Uint8Array(n);
+      cap = n;
+    }
+    for (let i = 0; i < n; i++) fgA[i] = data[i * 4 + 3] > BLOB_ALPHA_THRESHOLD ? 1 : 0;
+
+    // Dilate the fg mask a few px so grouping tolerates small gaps. Only the
+    // dilated mask is used to decide WHICH group a pixel belongs to — the
+    // original (non-dilated) alpha values are what actually get kept/dropped.
+    let src = fgA, dst = fgB;
+    for (let it = 0; it < BLOB_DILATE_RADIUS; it++) {
+      for (let y = 0; y < h; y++) {
+        const row = y * w;
+        for (let x = 0; x < w; x++) {
+          const i = row + x;
+          let v = src[i];
+          if (!v) {
+            if ((x > 0 && src[i - 1]) || (x < w - 1 && src[i + 1]) ||
+                (y > 0 && src[i - w]) || (y < h - 1 && src[i + w])) v = 1;
+          }
+          dst[i] = v;
+        }
+      }
+      const tmp = src; src = dst; dst = tmp;
+    }
+    const fgD = src; // dilated mask after the loop
+
     label.fill(-1);
-    const isFg = (i) => data[i * 4 + 3] > BLOB_ALPHA_THRESHOLD;
     let numLabels = 0, bestLabel = -1, bestSize = 0;
     for (let start = 0; start < n; start++) {
-      if (label[start] !== -1 || !isFg(start)) continue;
+      if (label[start] !== -1 || !fgD[start]) continue;
       let sp = 0;
       stack[sp++] = start;
       label[start] = numLabels;
-      let count = 0;
+      let count = fgA[start]; // size = real (non-dilated) fg pixels only
       while (sp > 0) {
         const idx = stack[--sp];
-        count++;
         const x = idx % w, y = (idx / w) | 0;
-        if (x > 0) { const ni = idx - 1; if (label[ni] === -1 && isFg(ni)) { label[ni] = numLabels; stack[sp++] = ni; } }
-        if (x < w - 1) { const ni = idx + 1; if (label[ni] === -1 && isFg(ni)) { label[ni] = numLabels; stack[sp++] = ni; } }
-        if (y > 0) { const ni = idx - w; if (label[ni] === -1 && isFg(ni)) { label[ni] = numLabels; stack[sp++] = ni; } }
-        if (y < h - 1) { const ni = idx + w; if (label[ni] === -1 && isFg(ni)) { label[ni] = numLabels; stack[sp++] = ni; } }
+        if (x > 0) { const ni = idx - 1; if (label[ni] === -1 && fgD[ni]) { label[ni] = numLabels; stack[sp++] = ni; count += fgA[ni]; } }
+        if (x < w - 1) { const ni = idx + 1; if (label[ni] === -1 && fgD[ni]) { label[ni] = numLabels; stack[sp++] = ni; count += fgA[ni]; } }
+        if (y > 0) { const ni = idx - w; if (label[ni] === -1 && fgD[ni]) { label[ni] = numLabels; stack[sp++] = ni; count += fgA[ni]; } }
+        if (y < h - 1) { const ni = idx + w; if (label[ni] === -1 && fgD[ni]) { label[ni] = numLabels; stack[sp++] = ni; count += fgA[ni]; } }
       }
       if (count > bestSize) { bestSize = count; bestLabel = numLabels; }
       numLabels++;
@@ -222,7 +261,7 @@ export async function prewarm({ workingWidth, downsampleRatio, modelUrl = DEFAUL
   } catch (e) { console.warn("[ARVENA] RVM prewarm skipped:", e); }
 }
 
-async function createRvmMatter({ modelUrl, workingWidth, downsampleRatio, isolateLargest }) {
+async function createRvmMatter({ modelUrl, workingWidth, downsampleRatio, isolateLargest, alphaEdgeLo = ALPHA_EDGE_LO }) {
   const tf = await ensureWebglTf();
   const model = await getRvmModel(tf, modelUrl);
   const downsample = tf.tensor(downsampleRatio);
@@ -280,7 +319,7 @@ async function createRvmMatter({ modelUrl, workingWidth, downsampleRatio, isolat
       // (the steeper gradient above EDGE_LO is preserved).
       const rgba = tf.tidy(() => {
         const a0 = pha.squeeze(0);                              // [h,w,1] 0..1
-        const a = a0.sub(ALPHA_EDGE_LO).div(1 - ALPHA_EDGE_LO).clipByValue(0, 1);
+        const a = a0.sub(alphaEdgeLo).div(1 - alphaEdgeLo).clipByValue(0, 1);
         const aI = a.mul(255).cast("int32");
         const rgb = tf.fill([aI.shape[0], aI.shape[1], 3], 255, "int32");
         return tf.concat([rgb, aI], -1);
@@ -412,6 +451,8 @@ async function createMediapipeMatter({ isolateLargest } = {}) {
  * @param {number} [opts.workingWidth]    RVM inference resolution (long side)
  * @param {number} [opts.downsampleRatio] RVM internal downsample ratio
  * @param {string} [opts.modelUrl]        RVM tfjs model.json URL
+ * @param {number} [opts.alphaEdgeLo]     RVM edge choke (0-1, default 0.08) —
+ *   lower keeps more faint hair detail at the cost of a bit more edge halo.
  * @param {boolean} [opts.isolateLargestPerson] Keep only the single largest
  *   connected "person" blob (drops bystanders/a crowd behind the presenter
  *   that the matting model would otherwise composite in too). Default true.
@@ -431,7 +472,7 @@ export async function startSegmentation(opts) {
     // presenterScale: extra zoom on the presenter — 1 = as fit, <1 pulls back
     // (e.g. 0.8 = 20% smaller, less zoomed, shows more of them + background).
     outWidth, outHeight, presenterFit = "contain", presenterScale = 1,
-    isolateLargestPerson = true,
+    isolateLargestPerson = true, alphaEdgeLo,
   } = opts;
   if (!isSupported()) throw new Error("This browser can't run local segmentation.");
 
@@ -511,7 +552,7 @@ export async function startSegmentation(opts) {
   if (engine === "rvm") {
     try {
       console.info("[ARVENA] starting RVM (TF.js / WebGL) matting engine…");
-      matter = await createRvmMatter({ modelUrl, workingWidth, downsampleRatio, isolateLargest: isolateLargestPerson });
+      matter = await createRvmMatter({ modelUrl, workingWidth, downsampleRatio, isolateLargest: isolateLargestPerson, alphaEdgeLo: typeof alphaEdgeLo === "number" ? alphaEdgeLo : undefined });
       console.info("[ARVENA] RVM ready (TF.js / WebGL).");
     } catch (err) {
       console.warn("[ARVENA] RVM unavailable, falling back to MediaPipe:", err);
