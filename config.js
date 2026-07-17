@@ -40,6 +40,12 @@ export const CONFIG = {
     WIDTH: 1920,
     HEIGHT: 1080,
     FPS: 30,
+    // "auto" (default) detects portrait/landscape from the window and flips
+    // live on resize/rotate (see detectPortrait() in main.js). Forced to
+    // "landscape" per client request — always renders/records 16:9 regardless
+    // of window shape or device rotation. Set back to "auto" to restore the
+    // live-flip behavior, or "portrait" to force the tall frame instead.
+    ORIENTATION: "landscape",
     MAX_SESSION_SECONDS: 60, // auto-stop + save each recording at 1 min (0 = no cap)
     // Matting engine: "rvm" (Robust Video Matting via TensorFlow.js/WebGL — soft
     // edges + temporal coherence, best quality) | "mediapipe" (GPU fallback).

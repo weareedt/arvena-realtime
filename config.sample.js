@@ -33,6 +33,11 @@ export const CONFIG = {
     WIDTH: 1280,
     HEIGHT: 720,
     FPS: 30,
+    // "auto" detects portrait/landscape from the window and flips live on
+    // resize/rotate (see detectPortrait() in main.js). Force "landscape" or
+    // "portrait" to lock a fixed kiosk display to one orientation regardless
+    // of window shape or device rotation.
+    ORIENTATION: "auto",
     MAX_SESSION_SECONDS: 60, // auto-stop + save each recording at 1 min (0 = no cap)
     // Matting engine: "rvm" (Robust Video Matting via TensorFlow.js/WebGL — soft
     // edges + temporal coherence, best quality) | "mediapipe" (GPU fallback).
