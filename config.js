@@ -52,13 +52,14 @@ export const CONFIG = {
     // an explicit NUMBER to override the auto value.
     //
     // RVM inference resolution (long side, px). Lower = faster, higher = sharper.
-    // Bumped above the "high" tier's 512 — a tight head-and-shoulders framing
-    // magnifies the working-res matte a lot, so low res shows up as a blocky
-    // hair/background edge. Costs more GPU; drop back to "auto" on weak devices.
-    RVM_WORKING_WIDTH: 640, // auto would be: low 256 / mid 384 / high 512
+    // Was 640/0.75 (above the "high" tier) to fight blocky hair edges on a tight
+    // headshot; dialed back to the "high" tier's own ceiling now that better
+    // lighting is doing some of that work for us. Bump back up if edges get
+    // blocky again; drop to "auto" to let weak devices self-tier down further.
+    RVM_WORKING_WIDTH: 512, // auto would be: low 256 / mid 384 / high 512
     // RVM internal downsample ratio (0.25–1). Higher = sharper matte (less jagged),
     // more GPU cost.
-    RVM_DOWNSAMPLE: 0.75,    // auto would be: low 0.4 / mid 0.5 / high 0.6
+    RVM_DOWNSAMPLE: 0.6,    // auto would be: low 0.4 / mid 0.5 / high 0.6
     // Cap on how often the matting model runs (frames/sec). The background still
     // animates + composites at full frame-rate; only the person cutout refreshes
     // at this rate. Lower = far less sustained GPU load on weak hardware.
