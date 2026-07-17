@@ -10,16 +10,22 @@
 export const SCENARIOS = [
   // ---- MAIN scenarios (top row) ---------------------------------------------
   {
-    id: "interactive",
-    label: "Interactive",
+    id: "stadium",
+    label: "Stadium",
     primary: true,
-    bgVideo: "assets/backgrounds/interactive-loop.mp4",              // landscape
-    bgVideoPortrait: "assets/backgrounds/interactive-loop-portrait.mp4", // portrait
-    bgImage: "assets/backgrounds/interactive.png",
+    bgVideo: "assets/backgrounds/stadium-loop.mp4",
+    bgVideoPortrait: "assets/backgrounds/stadium-loop-portrait.mp4",
+  },
+  {
+    id: "studio",
+    label: "Bilik Berita",
+    primary: true,
+    bgImage: "assets/backgrounds/studio.png",
+    bgImagePortrait: "assets/backgrounds/studio-portrait.png",
   },
   {
     id: "concert",
-    label: "Concert",
+    label: "Konsert",
     primary: true,
     bgVideo: "assets/backgrounds/concert-loop.mp4",
     bgVideoPortrait: "assets/backgrounds/concert-loop-portrait.mp4",
@@ -33,11 +39,12 @@ export const SCENARIOS = [
     bgImage: "assets/backgrounds/terjah.png",
   },
   {
-    id: "stadium",
-    label: "Stadium",
+    id: "interactive",
+    label: "Anak Gajah",
     primary: true,
-    bgVideo: "assets/backgrounds/stadium-loop.mp4",
-    bgVideoPortrait: "assets/backgrounds/stadium-loop-portrait.mp4",
+    bgVideo: "assets/backgrounds/interactive-loop.mp4",              // landscape
+    bgVideoPortrait: "assets/backgrounds/interactive-loop-portrait.mp4", // portrait
+    bgImage: "assets/backgrounds/interactive.png",
   },
 
   // ---- SECONDARY scenarios (second row, smaller chips) ----------------------
@@ -45,23 +52,18 @@ export const SCENARIOS = [
   // procedural painter in backgrounds.js). No prompt/mode/enhance needed.
   {
     id: "flood",
-    label: "Flood",
+    label: "Banjir",
     bgVideo: "assets/backgrounds/flood-loop.mp4",
-  },
-  {
-    id: "festival",
-    label: "Festival",
-    bgVideo: "assets/backgrounds/festival-loop.mp4",
-  },
-  {
-    id: "mountain",
-    label: "Mountain",
-    bgVideo: "assets/backgrounds/mountain-loop.mp4",
   },
   {
     id: "klcc",
     label: "KLCC",
     bgVideo: "assets/backgrounds/klcc-loop.mp4",
+  },
+  {
+    id: "festival",
+    label: "Festival",
+    bgVideo: "assets/backgrounds/festival-loop.mp4",
   },
   {
     id: "piala",
@@ -70,14 +72,13 @@ export const SCENARIOS = [
     bgImagePortrait: "assets/backgrounds/piala-portrait.png",
   },
   {
-    id: "studio",
-    label: "Baca Berita",
-    bgImage: "assets/backgrounds/studio.png",
-    bgImagePortrait: "assets/backgrounds/studio-portrait.png",
+    id: "mountain",
+    label: "Gunung",
+    bgVideo: "assets/backgrounds/mountain-loop.mp4",
   },
 ];
 
-export const DEFAULT_SCENARIO_ID = "flood";
+export const DEFAULT_SCENARIO_ID = "stadium";
 
 export function getScenario(id) {
   return SCENARIOS.find((s) => s.id === id) || SCENARIOS[0];

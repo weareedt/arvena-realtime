@@ -433,7 +433,7 @@ const PAINTERS = {
   klcc,
   concert: festival, // Siti Nurhaliza concert reuses the festival stage painter
   piala: stadium,    // Piala Malaysia reuses the stadium painter
-  studio,            // Baca Berita — news studio backdrop
+  studio,            // Bilik Berita — news studio backdrop
 };
 
 /**

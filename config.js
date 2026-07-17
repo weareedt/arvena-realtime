@@ -18,7 +18,7 @@ export const CONFIG = {
   },
 
   // Which scenario loads when the operator goes live.
-  DEFAULT_SCENARIO: "flood",
+  DEFAULT_SCENARIO: "stadium",
 
   // Which engine runs by default:
   //   "decart" → live AI restyle (per-second cost, capped by MAX_SESSION_SECONDS)
