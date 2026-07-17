@@ -62,7 +62,10 @@ const BLOB_DILATE_RADIUS = 2;
 // other one drops everyone else. Runs on the low-res working buffer (a few ms
 // at most at the ~256-512px inference width), reusing typed-array scratch
 // space across frames so it doesn't add per-frame GC pressure.
-function createBlobIsolator() {
+function createBlobIsolator({
+  alphaThreshold = BLOB_ALPHA_THRESHOLD,
+  dilateRadius = BLOB_DILATE_RADIUS,
+} = {}) {
   let label = new Int32Array(0);
   let stack = new Int32Array(0);
   let fgA = new Uint8Array(0);
@@ -75,13 +78,13 @@ function createBlobIsolator() {
       fgA = new Uint8Array(n); fgB = new Uint8Array(n);
       cap = n;
     }
-    for (let i = 0; i < n; i++) fgA[i] = data[i * 4 + 3] > BLOB_ALPHA_THRESHOLD ? 1 : 0;
+    for (let i = 0; i < n; i++) fgA[i] = data[i * 4 + 3] > alphaThreshold ? 1 : 0;
 
     // Dilate the fg mask a few px so grouping tolerates small gaps. Only the
     // dilated mask is used to decide WHICH group a pixel belongs to — the
     // original (non-dilated) alpha values are what actually get kept/dropped.
     let src = fgA, dst = fgB;
-    for (let it = 0; it < BLOB_DILATE_RADIUS; it++) {
+    for (let it = 0; it < dilateRadius; it++) {
       for (let y = 0; y < h; y++) {
         const row = y * w;
         for (let x = 0; x < w; x++) {
@@ -261,12 +264,12 @@ export async function prewarm({ workingWidth, downsampleRatio, modelUrl = DEFAUL
   } catch (e) { console.warn("[ARVENA] RVM prewarm skipped:", e); }
 }
 
-async function createRvmMatter({ modelUrl, workingWidth, downsampleRatio, isolateLargest, alphaEdgeLo = ALPHA_EDGE_LO }) {
+async function createRvmMatter({ modelUrl, workingWidth, downsampleRatio, isolateLargest, alphaEdgeLo = ALPHA_EDGE_LO, blobAlphaThreshold, blobDilateRadius }) {
   const tf = await ensureWebglTf();
   const model = await getRvmModel(tf, modelUrl);
   const downsample = tf.tensor(downsampleRatio);
   await warmupRvm(tf, model, workingWidth, downsample); // precompile shaders now
-  const isolateBlob = createBlobIsolator();
+  const isolateBlob = createBlobIsolator({ alphaThreshold: blobAlphaThreshold, dilateRadius: blobDilateRadius });
 
   // recurrent states — scalar zeros, recycled each frame (official RVM recipe)
   let r1i = tf.tensor(0.0), r2i = tf.tensor(0.0), r3i = tf.tensor(0.0), r4i = tf.tensor(0.0);
@@ -364,8 +367,8 @@ async function loadVision() {
   return visionLib;
 }
 
-async function createMediapipeMatter({ isolateLargest } = {}) {
-  const isolateBlob = createBlobIsolator();
+async function createMediapipeMatter({ isolateLargest, blobAlphaThreshold, blobDilateRadius } = {}) {
+  const isolateBlob = createBlobIsolator({ alphaThreshold: blobAlphaThreshold, dilateRadius: blobDilateRadius });
   const { ImageSegmenter, FilesetResolver } = await loadVision();
   const vision = await FilesetResolver.forVisionTasks(`${TASKS_CDN}/wasm`);
   const opts = {
@@ -456,6 +459,11 @@ async function createMediapipeMatter({ isolateLargest } = {}) {
  * @param {boolean} [opts.isolateLargestPerson] Keep only the single largest
  *   connected "person" blob (drops bystanders/a crowd behind the presenter
  *   that the matting model would otherwise composite in too). Default true.
+ * @param {number} [opts.blobAlphaThreshold] Alpha level (0-255) above which a
+ *   pixel counts as "person" for the largest-blob grouping above. Default 8.
+ * @param {number} [opts.blobDilateRadius]   Gap-bridging radius (working-res
+ *   px) used only to decide blob grouping, so thin hair wisps aren't read as
+ *   a separate island and dropped. Default 2.
  * @param {string} opts.scenarioId        initial background scenario
  * @param {(s: MediaStream)=>void} [opts.onLocalStream]  raw webcam (for the PiP)
  * @param {(e: Error)=>void} [opts.onError]
@@ -472,7 +480,7 @@ export async function startSegmentation(opts) {
     // presenterScale: extra zoom on the presenter — 1 = as fit, <1 pulls back
     // (e.g. 0.8 = 20% smaller, less zoomed, shows more of them + background).
     outWidth, outHeight, presenterFit = "contain", presenterScale = 1,
-    isolateLargestPerson = true, alphaEdgeLo,
+    isolateLargestPerson = true, alphaEdgeLo, blobAlphaThreshold, blobDilateRadius,
   } = opts;
   if (!isSupported()) throw new Error("This browser can't run local segmentation.");
 
@@ -552,16 +560,20 @@ export async function startSegmentation(opts) {
   if (engine === "rvm") {
     try {
       console.info("[ARVENA] starting RVM (TF.js / WebGL) matting engine…");
-      matter = await createRvmMatter({ modelUrl, workingWidth, downsampleRatio, isolateLargest: isolateLargestPerson, alphaEdgeLo: typeof alphaEdgeLo === "number" ? alphaEdgeLo : undefined });
+      matter = await createRvmMatter({
+        modelUrl, workingWidth, downsampleRatio, isolateLargest: isolateLargestPerson,
+        alphaEdgeLo: typeof alphaEdgeLo === "number" ? alphaEdgeLo : undefined,
+        blobAlphaThreshold, blobDilateRadius,
+      });
       console.info("[ARVENA] RVM ready (TF.js / WebGL).");
     } catch (err) {
       console.warn("[ARVENA] RVM unavailable, falling back to MediaPipe:", err);
       activeEngine = "mediapipe";
-      matter = await createMediapipeMatter({ isolateLargest: isolateLargestPerson });
+      matter = await createMediapipeMatter({ isolateLargest: isolateLargestPerson, blobAlphaThreshold, blobDilateRadius });
       console.info("[ARVENA] MediaPipe segmenter ready.");
     }
   } else {
-    matter = await createMediapipeMatter({ isolateLargest: isolateLargestPerson });
+    matter = await createMediapipeMatter({ isolateLargest: isolateLargestPerson, blobAlphaThreshold, blobDilateRadius });
   }
 
   // 4) frame pump

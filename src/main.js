@@ -195,6 +195,8 @@ async function startScene() {
       maxInferenceFps: CONFIG.LOCAL?.INFERENCE_FPS,
       isolateLargestPerson: CONFIG.LOCAL?.ISOLATE_LARGEST_PERSON,
       alphaEdgeLo: CONFIG.LOCAL?.ALPHA_EDGE_LO,
+      blobAlphaThreshold: CONFIG.LOCAL?.BLOB_ALPHA_THRESHOLD,
+      blobDilateRadius: CONFIG.LOCAL?.BLOB_DILATE_RADIUS,
       scenarioId: state.scenarioId,
       onLocalStream: ui.showLocalStream,
       onError: (err) => ui.setStatus("Error: " + (err?.message || err), "error"),

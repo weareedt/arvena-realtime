@@ -74,6 +74,17 @@ export const CONFIG = {
     // see a light halo/fringe around the presenter instead. undefined = use
     // the segment.js default.
     ALPHA_EDGE_LO: undefined,
+    // Finer control over ISOLATE_LARGEST_PERSON above (both undefined = use
+    // segment.js defaults of 8 / 2):
+    // - BLOB_ALPHA_THRESHOLD: alpha level (0-255) a pixel must exceed to count
+    //   as "person" for grouping. Lower it if part of the presenter (e.g. a
+    //   raised arm) is being read as a separate blob and dropped.
+    // - BLOB_DILATE_RADIUS: gap-bridging radius (working-res px) used only to
+    //   decide grouping, so thin hair wisps aren't read as a separate island.
+    //   Raise it if that's still happening; lower it if a bystander who gets
+    //   close to the presenter occasionally merges into their blob.
+    BLOB_ALPHA_THRESHOLD: undefined,
+    BLOB_DILATE_RADIUS: undefined,
   },
 
   // Cost & responsible-use guardrails (plan §8). Tune freely.

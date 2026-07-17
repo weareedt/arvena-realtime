@@ -32,13 +32,14 @@ export const CONFIG = {
   LOCAL: {
     // Camera capture size (also drives the output/recording size — see
     // orientationView() in main.js, which derives OUT_WIDTH/HEIGHT from
-    // these unless set explicitly). Bumped from 1280x720 to 1920x1080 so a
-    // portrait session composites at 1080x1920 instead of 720x1280 — the
-    // low capture res was showing up as pixelation when displayed larger
-    // than 720p. Requested as "ideal" (not exact), so a webcam that can't
-    // do 1080p will still negotiate its best mode instead of failing.
-    WIDTH: 1920,
-    HEIGHT: 1080,
+    // these unless set explicitly). Was bumped to 1920x1080 to fix
+    // pixelation, but that combined with the RVM bump below to enough
+    // sustained GPU/encode load that the live preview would stall near the
+    // end of a ~60s recording — reverted to the known-stable 720p. Re-test
+    // higher resolutions deliberately (ideally with profiling) rather than
+    // stacking quality bumps blind.
+    WIDTH: 1280,
+    HEIGHT: 720,
     FPS: 30,
     // "auto" (default) detects portrait/landscape from the window and flips
     // live on resize/rotate (see detectPortrait() in main.js). Forced to
@@ -58,14 +59,15 @@ export const CONFIG = {
     // an explicit NUMBER to override the auto value.
     //
     // RVM inference resolution (long side, px). Lower = faster, higher = sharper.
-    // Was 640/0.75 (above the "high" tier) to fight blocky hair edges on a tight
-    // headshot; dialed back to the "high" tier's own ceiling now that better
-    // lighting is doing some of that work for us. Bump back up if edges get
-    // blocky again; drop to "auto" to let weak devices self-tier down further.
-    RVM_WORKING_WIDTH: 512, // auto would be: low 256 / mid 384 / high 512
+    // Was forced to 512 (the "high" tier's own ceiling, up from an even
+    // higher 640 before that) to fight blocky hair edges on a tight headshot
+    // — but combined with the 1080p capture bump above, sustained load was
+    // enough to stall the live preview near the end of a ~60s recording.
+    // Reverted to "auto" so weak/mid devices get a lighter setting again.
+    RVM_WORKING_WIDTH: "auto", // auto: low 256 / mid 384 / high 512
     // RVM internal downsample ratio (0.25–1). Higher = sharper matte (less jagged),
     // more GPU cost.
-    RVM_DOWNSAMPLE: 0.6,    // auto would be: low 0.4 / mid 0.5 / high 0.6
+    RVM_DOWNSAMPLE: "auto",    // auto: low 0.4 / mid 0.5 / high 0.6
     // Cap on how often the matting model runs (frames/sec). The background still
     // animates + composites at full frame-rate; only the person cutout refreshes
     // at this rate. Lower = far less sustained GPU load on weak hardware.
@@ -86,6 +88,17 @@ export const CONFIG = {
     // see a light halo/fringe around the presenter instead. undefined = use
     // the segment.js default.
     ALPHA_EDGE_LO: undefined,
+    // Finer control over ISOLATE_LARGEST_PERSON above (both undefined = use
+    // segment.js defaults of 8 / 2):
+    // - BLOB_ALPHA_THRESHOLD: alpha level (0-255) a pixel must exceed to count
+    //   as "person" for grouping. Lower it if part of the presenter (e.g. a
+    //   raised arm) is being read as a separate blob and dropped.
+    // - BLOB_DILATE_RADIUS: gap-bridging radius (working-res px) used only to
+    //   decide grouping, so thin hair wisps aren't read as a separate island.
+    //   Raise it if that's still happening; lower it if a bystander who gets
+    //   close to the presenter occasionally merges into their blob.
+    BLOB_ALPHA_THRESHOLD: undefined,
+    BLOB_DILATE_RADIUS: undefined,
   },
 
   // Cost & responsible-use guardrails (plan §8). Tune freely.
