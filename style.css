@@ -84,7 +84,6 @@ body.portrait .sim-view > video { object-fit: cover; }
   padding: 16px 20px 28px;
   background: linear-gradient(to bottom, rgba(10,10,10,0.7), transparent);
 }
-.brand { text-shadow: 0 1px 8px rgba(0,0,0,0.6); }
 .overlay-bottom {
   display: flex;
   flex-direction: column;
@@ -119,9 +118,8 @@ body.portrait .sim-view > video { object-fit: cover; }
 }
 .fs-btn:hover { background: var(--edt-white); color: var(--edt-black); }
 
-/* Clean-view toggle: hide the top-left text, bottom controls and camera PiP,
-   leaving just the simulation. The top-right buttons stay so it can be undone. */
-body.ui-hidden .brand,
+/* Clean-view toggle: hide the bottom controls and camera PiP, leaving just the
+   simulation. The top-right buttons stay so it can be undone. */
 body.ui-hidden .overlay-bottom,
 body.ui-hidden .pip,
 body.ui-hidden #simulated-badge { display: none; }
@@ -142,22 +140,6 @@ body.live-recording .overlay-bottom { background: none; padding-bottom: 24px; }
 body.live-recording #end-session {
   font-size: 15px;
   padding: 14px 30px;
-}
-
-.eyebrow {
-  font: 600 11px/1 var(--font-body);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--edt-blue);
-}
-.stage-title {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(20px, 3vw, 34px);
-  line-height: 1;
-  letter-spacing: -0.03em;
-  text-transform: uppercase;
-  margin-top: 4px;
 }
 
 .stage-actions {
@@ -421,11 +403,11 @@ body.live-recording #end-session {
   font-size: 11px;
 }
 
-/* SIMULATED disclosure badge — top-left, under the title (clear of the footer) */
+/* SIMULATED disclosure badge — top-left, below the header scrim */
 .simulated-badge {
   position: fixed;
   left: 20px;
-  top: 92px;
+  top: 64px;    /* clears the header buttons (16px pad + ~32px control) */
   z-index: 3;
   padding: 6px 10px;
   background: rgba(10, 10, 10, 0.78);
