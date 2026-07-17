@@ -1,6 +1,6 @@
 # ARVENA — Project Status
 
-_Last updated: 2026-07-13_
+_Last updated: 2026-07-17_
 
 Current state of the ARVENA Realtime Scenario Generator. See [README.md](README.md) for
 setup/run details and [decart-realtime-scenario-plan.md](decart-realtime-scenario-plan.md)
@@ -52,14 +52,17 @@ key is client-safe by design. Set `STORAGE.ENABLE_QR:false` to fall back to loca
 
 **Orientation** (`CONFIG.LOCAL.ORIENTATION`) drives output/recording size, presenter fit,
 on-screen fill, and which assets load:
-- **`"auto"`** (default) — detects from the **window** and flips the whole pipeline live on
-  resize/rotate (`detectPortrait()`/`orientationView()` in main.js; a `matchMedia`+`resize`
-  listener rebuilds the scene via `restartScene()`). Won't flip mid-recording — deferred to
-  when recording stops (`pendingReorient`).
-- **`"portrait"` / `"landscape"`** — force it (fixed kiosk). Portrait = 1080×1920, bg
-  cover-fills edge-to-edge, presenter cover-cropped; landscape = 16:9, presenter letterboxed.
-- Camera capture stays landscape (1080p) for a sharp matte; output size derives (or set
-  `OUT_WIDTH/OUT_HEIGHT`). `PRESENTER_SCALE` (1) can pull the presenter back to ease zoom.
+- **Currently forced to `"landscape"`** per client request — always renders/records 16:9
+  regardless of window shape or device rotation. `"auto"` (the other option) detects from
+  the **window** instead and flips the whole pipeline live on resize/rotate
+  (`detectPortrait()`/`orientationView()` in main.js; a `matchMedia`+`resize` listener
+  rebuilds the scene via `restartScene()`). Won't flip mid-recording — deferred to when
+  recording stops (`pendingReorient`).
+- **`"portrait"` / `"landscape"`** — force one or the other (fixed kiosk). Portrait =
+  1080×1920, bg cover-fills edge-to-edge, presenter cover-cropped; landscape = 16:9,
+  presenter letterboxed.
+- Output size derives from capture size (or set `OUT_WIDTH/OUT_HEIGHT` explicitly).
+  `PRESENTER_SCALE` (1) can pull the presenter back to ease zoom.
 - **Orientation-specific backgrounds:** a scenario's `bgVideoPortrait`/`bgImagePortrait`
   is used when portrait (else the generic `bgVideo`/`bgImage`). Portrait-native clips also
   remove the landscape-in-portrait cover-fit zoom. `bgOffsetX/Y` (or global `BG_OFFSET_X/Y`,
@@ -80,11 +83,19 @@ Quality details:
   through it (sharp, not upscaled from the working res).
 - A **full-res snapshot** is grabbed the same instant the matte is computed, so the
   cutout doesn't trail on fast motion.
-- `ALPHA_EDGE_LO` (segment.js const) **chokes the low-alpha rim** to remove the
-  background-spill halo.
-- Output canvas size/fit come from `CONFIG.LOCAL.ORIENTATION` (default portrait 1080×1920);
-  background cover-fills full-bleed, presenter fit is `cover` (portrait) or `contain`
-  (landscape). Camera capture stays landscape (`WIDTH`/`HEIGHT`) regardless.
+- `ALPHA_EDGE_LO` (segment.js const, default `0.05`, tunable via
+  `CONFIG.LOCAL.ALPHA_EDGE_LO`) **chokes the low-alpha rim** to remove the background-spill
+  halo — lower it if hair is getting clipped (dark hair on a dark background is the
+  hardest case), raise it if you see background bleed through as a halo instead.
+- **Largest-blob isolation** (`CONFIG.LOCAL.ISOLATE_LARGEST_PERSON`, default `true`): keeps
+  only the single largest connected "person" blob in the matte and drops everyone else, so
+  a crowd/bystanders behind the presenter don't get composited in too. Runs a connected-
+  component flood-fill on the low-res working buffer, with a small gap-bridging dilation
+  (`BLOB_DILATE_RADIUS`) so thin hair wisps aren't read as a separate island and dropped.
+  Finer control via `CONFIG.LOCAL.BLOB_ALPHA_THRESHOLD` / `BLOB_DILATE_RADIUS` (both
+  `undefined` = segment.js defaults).
+- Output canvas size/fit come from `CONFIG.LOCAL.ORIENTATION`; background cover-fills
+  full-bleed, presenter fit is `cover` (portrait) or `contain` (landscape).
 
 Tradeoff: the presenter is composited, not neurally restyled — reads like a virtual set,
 not a fully AI-generated frame.
@@ -105,10 +116,15 @@ not a fully AI-generated frame.
 
 ```
 index.html        operator console (window-chrome panels)
+dashboard.html    admin/ops dashboard: browse, preview, download, QR, delete recordings
 style.css         EDT/ARVENA tokens + layout
 config.js         non-secret client config (model IDs, 20s cap, AUTO_RECORD, price)
 api/session.mjs   serverless: holds DECART_API_KEY, returns credential (origin gate + rate limit)
+api/videos-delete.mjs  serverless: admin-password-gated clip delete (holds the Supabase service-role key)
 src/main.js       orchestrator: idle→live state machine, auto-record, guards
+src/dashboard.js  dashboard logic: lists every clip from Supabase Storage (grouped by
+                  YYYY-MM, sorted newest-first by parsed filename timestamp), storage-usage
+                  meter + delete gated behind an admin password (sessionStorage)
 src/decart.js     @decartai/sdk wrapper (connect / setPrompt / stop)
 src/segment.js    OFFLINE engine: RVM matting (TensorFlow.js/WebGL, default) w/ MediaPipe ImageSegmenter fallback → canvas MediaStream (free)
 assets/models/rvm-tfjs/  RVM TF.js graph model (model.json + ~3.7MB shard), served same-origin
@@ -125,26 +141,31 @@ src/ui.js         DOM helpers (incl. QR modal states)
 
 ## Scenarios
 
-**Eleven scenarios** (`src/scenarios.js`), **video-only** — the engine composites the
-presenter over `bgVideo`/`bgImage`; it does NOT restyle, so only `id`/`label`/media are
-read (no `prompt`/`mode`/`enhance` anymore). Backplate resolves by `id` → `bgVideo` (mp4)
-→ `bgImage` (png/jpg) → procedural painter (`src/backgrounds.js`; unknown id → `studio`).
-Chips render in **two rows** — `primary: true` scenarios in a larger **top row**, the rest
-in a smaller **second row** (`ui.renderScenarios`). Default: `flood`.
+**Ten scenarios** (`src/scenarios.js`, Malay-labelled), **video-only** — the engine
+composites the presenter over `bgVideo`/`bgImage`; it does NOT restyle, so only
+`id`/`label`/media are read (no `prompt`/`mode`/`enhance` anymore). Backplate resolves by
+`id` → `bgVideo` (mp4) → `bgImage` (png/jpg) → procedural painter (`src/backgrounds.js`;
+unknown id → `studio`). Chips render in **two rows** — `primary: true` scenarios in a
+larger **top row**, the rest in a smaller **second row** (`ui.renderScenarios`). Default:
+`stadium`.
 
-- **Main row** (`primary`): `interactive` (video), `concert` (video, reuses `festival`
-  painter), `terjah` (video), `stadium` (video). `interactive`/`terjah` accept EITHER
-  `<id>-loop.mp4` or `<id>.png` (both paths set); both now ship an MP4.
-- **Second row**: `flood`, `festival`, `mountain`, `klcc` (video), `piala`
-  (`piala.png`, reuses `stadium`), `studio` (`studio.png`).
+- **Main row** (`primary`): `stadium` ("Stadium"), `studio` ("Bilik Berita"), `concert`
+  ("Konsert"), `terjah` ("Terjah"), `interactive` ("Anak Gajah"). `terjah`/`interactive`
+  accept EITHER `<id>-loop.mp4` or `<id>.png` (both paths set).
+- **Second row**: `flood` ("Banjir"), `klcc` ("KLCC"), `festival` ("Festival"), `piala`
+  ("Piala Malaysia"), `mountain` ("Gunung").
 - `segment.js` is lazy-loaded (`await import(...)`) so its CDN deps can't break app boot.
   Don't reintroduce a static import of segment.js.
 
-**Performance:** RVM matting is GPU-bound. `config.js` ships full quality (capture 1080p,
-output 1080×1920, `RVM_WORKING_WIDTH:512`, `RVM_DOWNSAMPLE:0.75`). On a weak GPU, the
-documented lighter preset is smaller output + `384`/`0.5` (comments in config). Capture
-stays 1080p even when output is lowered — dropping CAPTURE size makes some webcams
-center-crop ("zoom"), so decouple via `OUT_WIDTH`/`OUT_HEIGHT` instead.
+**Performance:** RVM matting is GPU-bound. `config.js` currently ships capture
+**1280×720**, `RVM_WORKING_WIDTH`/`RVM_DOWNSAMPLE`/`INFERENCE_FPS` all **`"auto"`**
+(device-tier adaptive — see `PERF_PRESETS` in segment.js: low/mid/high). These were
+briefly bumped higher (1920×1080 capture, RVM forced to 512/0.6) to fight pixelation and
+blocky hair edges, but that combination correlated with the live preview stalling near the
+end of a ~60s recording, so both were reverted. Re-test higher settings deliberately
+(ideally with profiling) rather than stacking quality bumps blind. Capture size also drives
+output/recording size (`orientationView()` in main.js) unless `OUT_WIDTH`/`OUT_HEIGHT` are
+set explicitly.
 
 ## Open items
 
