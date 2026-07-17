@@ -138,6 +138,13 @@ function fmtWhen(d) {
   });
 }
 
+// Real chronological order for a clip: prefer the timestamp parsed from the
+// filename, fall back to Supabase's updated_at/created_at, else 0 (sinks
+// malformed entries to the bottom instead of throwing).
+function clipTimestamp(c) {
+  return c.when?.getTime() ?? (c.updatedAt ? new Date(c.updatedAt).getTime() : 0);
+}
+
 // ---- Rendering --------------------------------------------------------------
 
 function renderSummary() {
@@ -167,7 +174,10 @@ function renderMonths() {
     els.months.innerHTML = `<p class="empty">No clips found in the bucket yet.</p>`;
     return;
   }
-  // Group by month (allClips is already newest-first per month).
+  // Group by month. allClips is sorted newest-first by clipTimestamp() in
+  // load() -- the Storage API's own "sort by name desc" (listPrefix()) isn't
+  // chronological, since the scenario id comes before the timestamp in the
+  // filename, so it can't be relied on here.
   const byMonth = new Map();
   for (const c of allClips) {
     if (!byMonth.has(c.month)) byMonth.set(c.month, []);
@@ -426,6 +436,7 @@ async function load() {
   els.refreshBtn.disabled = true;
   try {
     allClips = await listAllClips();
+    allClips.sort((a, b) => clipTimestamp(b) - clipTimestamp(a));
     renderSummary();
     renderMonths();
     setStatus("");
