@@ -193,6 +193,7 @@ async function startScene() {
       workingWidth: CONFIG.LOCAL?.RVM_WORKING_WIDTH,
       downsampleRatio: CONFIG.LOCAL?.RVM_DOWNSAMPLE,
       maxInferenceFps: CONFIG.LOCAL?.INFERENCE_FPS,
+      isolateLargestPerson: CONFIG.LOCAL?.ISOLATE_LARGEST_PERSON,
       scenarioId: state.scenarioId,
       onLocalStream: ui.showLocalStream,
       onError: (err) => ui.setStatus("Error: " + (err?.message || err), "error"),

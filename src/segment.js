@@ -36,6 +36,53 @@ const DEFAULT_RVM_MODEL = "assets/models/rvm-tfjs/model.json";
 // edge / less halo but eats fine hair; ~0.1–0.2 is a good range.
 const ALPHA_EDGE_LO = 0.12;
 
+// Alpha level (0-255) above which a pixel counts as "person" for connected-
+// component purposes. RVM's choked alpha is exactly 0 below ALPHA_EDGE_LO, so
+// 0 is the natural cut there; a small positive value also absorbs MediaPipe's
+// near-zero background noise.
+const BLOB_ALPHA_THRESHOLD = 8;
+
+// ---- Largest-blob isolation --------------------------------------------------
+// RVM/MediaPipe matte ANY person in frame, not just the presenter — if a crowd
+// or bystanders are visible behind them, their alpha gets composited in too.
+// The presenter is normally the closest (and so the largest) figure in frame,
+// so keeping only the single largest connected alpha blob and zeroing every
+// other one drops everyone else. Runs on the low-res working buffer (a few ms
+// at most at the ~256-512px inference width), reusing typed-array scratch
+// space across frames so it doesn't add per-frame GC pressure.
+function createBlobIsolator() {
+  let label = new Int32Array(0);
+  let stack = new Int32Array(0);
+  let cap = 0;
+  return function isolateLargestBlob(data, w, h) {
+    const n = w * h;
+    if (cap !== n) { label = new Int32Array(n); stack = new Int32Array(n); cap = n; }
+    label.fill(-1);
+    const isFg = (i) => data[i * 4 + 3] > BLOB_ALPHA_THRESHOLD;
+    let numLabels = 0, bestLabel = -1, bestSize = 0;
+    for (let start = 0; start < n; start++) {
+      if (label[start] !== -1 || !isFg(start)) continue;
+      let sp = 0;
+      stack[sp++] = start;
+      label[start] = numLabels;
+      let count = 0;
+      while (sp > 0) {
+        const idx = stack[--sp];
+        count++;
+        const x = idx % w, y = (idx / w) | 0;
+        if (x > 0) { const ni = idx - 1; if (label[ni] === -1 && isFg(ni)) { label[ni] = numLabels; stack[sp++] = ni; } }
+        if (x < w - 1) { const ni = idx + 1; if (label[ni] === -1 && isFg(ni)) { label[ni] = numLabels; stack[sp++] = ni; } }
+        if (y > 0) { const ni = idx - w; if (label[ni] === -1 && isFg(ni)) { label[ni] = numLabels; stack[sp++] = ni; } }
+        if (y < h - 1) { const ni = idx + w; if (label[ni] === -1 && isFg(ni)) { label[ni] = numLabels; stack[sp++] = ni; } }
+      }
+      if (count > bestSize) { bestSize = count; bestLabel = numLabels; }
+      numLabels++;
+    }
+    if (numLabels <= 1) return; // nothing to isolate (0 or 1 blob already)
+    for (let i = 0; i < n; i++) if (label[i] !== bestLabel) data[i * 4 + 3] = 0;
+  };
+}
+
 // ---- Adaptive performance tier ----------------------------------------------
 // The RVM model runs every frame of the live-preview-from-boot, so on a phone or
 // an integrated-GPU laptop it pegs the GPU the whole time and the page becomes
@@ -175,11 +222,12 @@ export async function prewarm({ workingWidth, downsampleRatio, modelUrl = DEFAUL
   } catch (e) { console.warn("[ARVENA] RVM prewarm skipped:", e); }
 }
 
-async function createRvmMatter({ modelUrl, workingWidth, downsampleRatio }) {
+async function createRvmMatter({ modelUrl, workingWidth, downsampleRatio, isolateLargest }) {
   const tf = await ensureWebglTf();
   const model = await getRvmModel(tf, modelUrl);
   const downsample = tf.tensor(downsampleRatio);
   await warmupRvm(tf, model, workingWidth, downsample); // precompile shaders now
+  const isolateBlob = createBlobIsolator();
 
   // recurrent states — scalar zeros, recycled each frame (official RVM recipe)
   let r1i = tf.tensor(0.0), r2i = tf.tensor(0.0), r3i = tf.tensor(0.0), r4i = tf.tensor(0.0);
@@ -239,6 +287,7 @@ async function createRvmMatter({ modelUrl, workingWidth, downsampleRatio }) {
       });
       const [hh, wwx] = rgba.shape;
       const pixelData = new Uint8ClampedArray(await rgba.data());
+      if (isolateLargest) isolateBlob(pixelData, wwx, hh);
       mctx.putImageData(new ImageData(pixelData, wwx, hh), 0, 0);
 
       // Scale the soft matte up, then paint the time-aligned full-res snapshot
@@ -276,7 +325,8 @@ async function loadVision() {
   return visionLib;
 }
 
-async function createMediapipeMatter() {
+async function createMediapipeMatter({ isolateLargest } = {}) {
+  const isolateBlob = createBlobIsolator();
   const { ImageSegmenter, FilesetResolver } = await loadVision();
   const vision = await FilesetResolver.forVisionTasks(`${TASKS_CDN}/wasm`);
   const opts = {
@@ -324,6 +374,7 @@ async function createMediapipeMatter() {
             const j = i * 4;
             p[j] = 255; p[j + 1] = 255; p[j + 2] = 255; p[j + 3] = data[i] * 255;
           }
+          if (isolateLargest) isolateBlob(p, mw, mh);
           maskCtx.putImageData(img, 0, 0);
 
           pctx.save();
@@ -361,6 +412,9 @@ async function createMediapipeMatter() {
  * @param {number} [opts.workingWidth]    RVM inference resolution (long side)
  * @param {number} [opts.downsampleRatio] RVM internal downsample ratio
  * @param {string} [opts.modelUrl]        RVM tfjs model.json URL
+ * @param {boolean} [opts.isolateLargestPerson] Keep only the single largest
+ *   connected "person" blob (drops bystanders/a crowd behind the presenter
+ *   that the matting model would otherwise composite in too). Default true.
  * @param {string} opts.scenarioId        initial background scenario
  * @param {(s: MediaStream)=>void} [opts.onLocalStream]  raw webcam (for the PiP)
  * @param {(e: Error)=>void} [opts.onError]
@@ -377,6 +431,7 @@ export async function startSegmentation(opts) {
     // presenterScale: extra zoom on the presenter — 1 = as fit, <1 pulls back
     // (e.g. 0.8 = 20% smaller, less zoomed, shows more of them + background).
     outWidth, outHeight, presenterFit = "contain", presenterScale = 1,
+    isolateLargestPerson = true,
   } = opts;
   if (!isSupported()) throw new Error("This browser can't run local segmentation.");
 
@@ -456,16 +511,16 @@ export async function startSegmentation(opts) {
   if (engine === "rvm") {
     try {
       console.info("[ARVENA] starting RVM (TF.js / WebGL) matting engine…");
-      matter = await createRvmMatter({ modelUrl, workingWidth, downsampleRatio });
+      matter = await createRvmMatter({ modelUrl, workingWidth, downsampleRatio, isolateLargest: isolateLargestPerson });
       console.info("[ARVENA] RVM ready (TF.js / WebGL).");
     } catch (err) {
       console.warn("[ARVENA] RVM unavailable, falling back to MediaPipe:", err);
       activeEngine = "mediapipe";
-      matter = await createMediapipeMatter();
+      matter = await createMediapipeMatter({ isolateLargest: isolateLargestPerson });
       console.info("[ARVENA] MediaPipe segmenter ready.");
     }
   } else {
-    matter = await createMediapipeMatter();
+    matter = await createMediapipeMatter({ isolateLargest: isolateLargestPerson });
   }
 
   // 4) frame pump

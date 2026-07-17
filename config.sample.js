@@ -56,6 +56,11 @@ export const CONFIG = {
     // Edge feather in px. RVM's matte is already soft (0 ideal). undefined lets
     // the engine pick (0 for RVM, a touch for MediaPipe).
     EDGE_FEATHER_PX: undefined,
+    // Keep only the single largest connected "person" blob in the matte and
+    // drop everything else — stops bystanders/a crowd behind the presenter
+    // from being composited in too (the presenter, being closest to camera,
+    // is normally the largest figure in frame). Set false to matte in everyone.
+    ISOLATE_LARGEST_PERSON: true,
   },
 
   // Cost & responsible-use guardrails (plan §8). Tune freely.
