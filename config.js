@@ -30,8 +30,15 @@ export const CONFIG = {
   // here is a UX/length cap, not a billing guard (0 = unlimited). WIDTH/HEIGHT/FPS
   // drive the local camera capture.
   LOCAL: {
-    WIDTH: 1280,
-    HEIGHT: 720,
+    // Camera capture size (also drives the output/recording size — see
+    // orientationView() in main.js, which derives OUT_WIDTH/HEIGHT from
+    // these unless set explicitly). Bumped from 1280x720 to 1920x1080 so a
+    // portrait session composites at 1080x1920 instead of 720x1280 — the
+    // low capture res was showing up as pixelation when displayed larger
+    // than 720p. Requested as "ideal" (not exact), so a webcam that can't
+    // do 1080p will still negotiate its best mode instead of failing.
+    WIDTH: 1920,
+    HEIGHT: 1080,
     FPS: 30,
     MAX_SESSION_SECONDS: 60, // auto-stop + save each recording at 1 min (0 = no cap)
     // Matting engine: "rvm" (Robust Video Matting via TensorFlow.js/WebGL — soft
