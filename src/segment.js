@@ -38,7 +38,7 @@ const DEFAULT_RVM_MODEL = "assets/models/rvm-tfjs/model.json";
 // already low, so a high choke clips it first. ~0.06–0.15 is the usable range;
 // lower it (CONFIG.LOCAL.ALPHA_EDGE_LO) if hair is disappearing, raise it if you
 // see background bleeding through as a halo around the presenter.
-const ALPHA_EDGE_LO = 0.08;
+const ALPHA_EDGE_LO = 0.05;
 
 // Alpha level (0-255) above which a pixel counts as "person" for connected-
 // component purposes. RVM's choked alpha is exactly 0 below ALPHA_EDGE_LO, so
