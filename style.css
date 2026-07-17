@@ -84,6 +84,16 @@ body.portrait .sim-view > video { object-fit: cover; }
   padding: 16px 20px 28px;
   background: linear-gradient(to bottom, rgba(10,10,10,0.7), transparent);
 }
+/* Top-left logo. The artwork is a wide lockup (~8.8:1), so size it by WIDTH and
+   let height follow — a fixed height would make it absurdly wide, and flex could
+   shrink it and squash the artwork. flex-shrink:0 keeps the ratio honest.
+   Hidden if assets/logo.png is missing (see the onerror hook in index.html). */
+.stage-logo {
+  width: min(280px, 40vw);
+  height: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 8px rgba(0,0,0,0.6));
+}
 .overlay-bottom {
   display: flex;
   flex-direction: column;
@@ -336,14 +346,13 @@ body.live-recording #end-session {
 }
 
 /* ---- Picture-in-picture: raw camera inset, floated over the simulation ---- */
+/* Sits in the bottom cluster, directly above START — flow order does the
+   placement, so it can't drift out of the scrim on odd aspect ratios. */
 .pip {
-  position: fixed;
-  top: 92px;                    /* just below the SIMULATION VIEW title */
-  left: 50%;
-  transform: translateX(-50%);  /* centered anchor */
   width: 12%;
   min-width: 96px;
   max-width: 150px;
+  margin-bottom: 4px;
   border: var(--border);
   background: var(--edt-black);
   z-index: 2;

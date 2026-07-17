@@ -35,6 +35,9 @@
   <div class="overlay">
 
     <header class="overlay-top">
+      <!-- Drop the artwork at assets/logo.png. Hides itself if absent. -->
+      <img id="stage-logo" class="stage-logo" src="assets/logo.png" alt=""
+           onerror="this.hidden = true">
       <div class="overlay-top-right">
         <span class="rec" id="rec-indicator" hidden>● ON AIR</span>
         <button id="ui-toggle" class="fs-btn" aria-label="Toggle UI visibility">▢ HIDE UI</button>
@@ -44,16 +47,16 @@
 
     <div id="simulated-badge" class="simulated-badge" hidden>▓ SIMULATED — AI GENERATED ▓</div>
 
-    <!-- Small inset: raw camera (always-on monitor) -->
-    <div class="pip">
-      <div class="pip-titlebar"><span>CAMERA.IN</span></div>
-      <div class="pip-video">
-        <video id="pip-cam" autoplay playsinline muted></video>
-        <div id="pip-placeholder" class="pip-placeholder">NO CAMERA</div>
-      </div>
-    </div>
-
     <div class="overlay-bottom">
+      <!-- Small inset: raw camera (always-on monitor) -->
+      <div class="pip">
+        <div class="pip-titlebar"><span>CAMERA.IN</span></div>
+        <div class="pip-video">
+          <video id="pip-cam" autoplay playsinline muted></video>
+          <div id="pip-placeholder" class="pip-placeholder">NO CAMERA</div>
+        </div>
+      </div>
+
       <!-- Start / Stop -->
       <div class="stage-actions">
         <button id="go-live" class="btn-primary">START →</button>
